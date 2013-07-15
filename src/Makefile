@@ -1230,6 +1230,11 @@ scarakins-objs := emc/kinematics/scarakins.o
 scarakins-objs += libnml/posemath/_posemath.o
 scarakins-objs += libnml/posemath/sincos.o $(MATHSTUB)
 
+obj-m += rotarydeltakins.o
+rotarydeltakins-objs := emc/kinematics/rotarydeltakins.o
+rotarydeltakins-objs += libnml/posemath/_posemath.o
+rotarydeltakins-objs += libnml/posemath/sincos.o $(MATHSTUB)
+
 obj-$(CONFIG_MOTMOD) += motmod.o
 motmod-objs := emc/kinematics/cubic.o
 motmod-objs += emc/kinematics/tc.o
@@ -1382,6 +1387,7 @@ $(RTLIBDIR)/scope_rt$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(scope_rt-objs))
 $(RTLIBDIR)/hal_lib$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hal_lib-objs))
 $(RTLIBDIR)/motmod$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(motmod-objs))
 $(RTLIBDIR)/trivkins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(trivkins-objs))
+$(RTLIBDIR)/gentrivkins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(gentrivkins-objs))
 $(RTLIBDIR)/5axiskins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(5axiskins-objs))
 $(RTLIBDIR)/maxkins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(maxkins-objs))
 $(RTLIBDIR)/gantrykins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(gantrykins-objs))
@@ -1391,6 +1397,7 @@ $(RTLIBDIR)/genhexkins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(genhexkins-objs))
 $(RTLIBDIR)/genserkins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(genserkins-objs))
 $(RTLIBDIR)/pumakins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(pumakins-objs))
 $(RTLIBDIR)/scarakins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(scarakins-objs))
+$(RTLIBDIR)/rotarydeltakins$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(rotarydeltakins-objs))
 $(RTLIBDIR)/hal_gm$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hal_gm-objs))
 
 ifeq ($(TRIVIAL_BUILD),no)
