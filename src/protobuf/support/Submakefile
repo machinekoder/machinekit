@@ -1,0 +1,124 @@
+
+
+ifeq ($(USE_PROTOBUF),yes)
+
+ifeq ($(BUILD_EXAMPLES),yes)
+PBEX := protobuf/support
+
+ENCDEC_SRCS :=  $(addprefix $(PBEX)/, \
+	encdec.cc)
+ENCDEC_CXX_CFLAGS = -g `pkg-config --cflags protobuf`  -DPB_FIELD_32BIT
+#ENCDEC_CXX_CFLAGS = -g `pkg-config --cflags protobuf` -I../../ -DPB_FIELD_32BIT
+ENCDEC_CXX_LDFLAGS=  $(CXX_PROTOLIB) `pkg-config --libs protobuf` \
+	../lib/libjson2pb.so -ljansson
+
+PBJSONLIB = #protobuf/pb2json/libpb2json.so
+
+PB2CXX_PROTOLIB = ../lib/liblinuxcnc-pb2++.so
+
+$(call TOOBJSDEPS, $(ENCDEC_SRCS)) : EXTRAFLAGS += $(ENCDEC_CXX_CFLAGS)
+
+../bin/encdec: $(call TOOBJS, $(ENCDEC_SRCS)) \
+	$(PB2CXX_PROTOLIB)
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^  \
+	 $(ENCDEC_CXX_LDFLAGS) $(PBJSONLIB)
+
+
+NPDECODE_SRCS :=  $(addprefix $(PBEX)/, \
+	npbdecode.c)
+NPBC_PROTOLIB = ../lib/liblinuxcnc-npb.so
+NPDECODE_CFLAGS = -g  -I../../ -DPB_FIELD_32BIT
+NPDECODE_LDFLAGS = $(NPBC_PROTOLIB)
+
+$(call TOOBJSDEPS, $(NPDECODE_SRCS)) : EXTRAFLAGS += $(NPDECODE_CFLAGS)
+
+../bin/npbdecode: $(call TOOBJS, $(NPDECODE_SRCS)) \
+	$(NPBC_PROTOLIB)
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^  \
+	 $(NPDECODE_LDFLAGS) $(NPDECODE_LDFLAGS)
+
+
+RTPRINTF_SRCS :=  $(addprefix $(PBEX)/, \
+	rtprintf.c)
+RTPRINTF_CCFLAGS := -g -DPB_FIELD_32BIT
+RTPRINTF_LDFLAGS := -g
+
+$(call TOOBJSDEPS, $(RTPRINTF_SRCS)) : EXTRAFLAGS += $(RTPRINTF_CCFLAGS)
+
+../bin/rtprintf: $(call TOOBJS, $(RTPRINTF_SRCS)) \
+	../lib/liblinuxcnc-npb.so
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ $(LDFLAGS) $(RTPRINTF_LDFLAGS)
+
+
+RAWREAD_SRCS :=  $(PBEX)/rawread.c \
+		 protobuf/nanopb/pb_decode.c
+RAWREAD_CCFLAGS := -g -O0 -DPB_FIELD_32BIT
+RAWREAD_LDFLAGS := -g
+
+$(call TOOBJSDEPS, $(RAWREAD_SRCS)) : EXTRAFLAGS += $(RAWREAD_CCFLAGS)
+
+../bin/rawread: $(call TOOBJS, $(RAWREAD_SRCS))
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ $(LDFLAGS) $(RAWREAD_LDFLAGS)
+
+../include/%.h: ./$(PBEX)/%.h
+	@mkdir -p $(dir $@)
+	cp $^ $@
+
+../include/%.hh: ./$(PBEX)/%.hh
+	@mkdir -p $(dir $@)
+	cp $^ $@
+
+
+
+UNIONREAD_SRCS :=  $(PBEX)/unionread.c \
+		 protobuf/nanopb/pb_decode.c
+UNIONREAD_CCFLAGS := -g -O0 -DPB_FIELD_32BIT
+UNIONREAD_LDFLAGS := -g
+
+$(call TOOBJSDEPS, $(UNIONREAD_SRCS)) : EXTRAFLAGS += $(UNIONREAD_CCFLAGS)
+
+../bin/unionread: $(call TOOBJS, $(UNIONREAD_SRCS))
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ $(LDFLAGS) $(UNIONREAD_LDFLAGS)
+
+../include/%.h: ./$(PBEX)/%.h
+	@mkdir -p $(dir $@)
+	cp $^ $@
+
+../include/%.hh: ./$(PBEX)/%.hh
+	@mkdir -p $(dir $@)
+	cp $^ $@
+
+$(call TOOBJSDEPS, $(PBEX)/sizes.c) : EXTRAFLAGS +=
+
+../bin/sizes: $(call TOOBJS, $(PBEX)/sizes.c)
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ $(LDFLAGS)
+
+USERSRCS += $(RTPRINTF_SRCS) $(ENCDEC_SRCS) $(RAWREAD_SRCS) \
+	 $(UNIONREAD_SRCS) $(NPDECODE_SRCS) $(PBEX)/sizes.c
+
+TARGETS += \
+	../bin/sizes \
+	../bin/rtprintf \
+	../bin/encdec \
+	../bin/unionread \
+	../bin/npbdecode \
+	../include/container.h
+
+#	../bin/rawread
+
+../lib/python/%.py: protobuf/support/%.py
+	@$(ECHO) Syntax checking python script $(notdir $@)
+	$(Q)$(PYTHON) -c 'import sys; compile(open(sys.argv[1]).read(), sys.argv[1], "exec")' $<
+	$(ECHO) Copying python script $(notdir $@)
+	$(Q)cp $< $@
+
+PYTARGETS += ../lib/python/pb2json.py
+
+endif
+endif
