@@ -223,9 +223,13 @@ SUBDIRS := \
 	\
 	module_helper \
 	\
+	protobuf \
+	protobuf/support \
+	\
 	po \
 	\
 	../docs/src
+
 
 # moved to src/rtapi/Submakefile
 # ULAPISRCS := rtapi/$(RTPREFIX)_ulapi.c
@@ -259,11 +263,11 @@ SUBMAKEFILES := $(patsubst %,%/Submakefile,$(SUBDIRS))
 ASSERT_EMPTY = $(if $(1), $(error "Should be empty but is not: $(1)"))
 ifeq ($(TARGET_PLATFORM),beaglebone)
 # the beaglebone port adds .p (PRU assembly) source files, see hal/components
-$(call ASSERT_EMPTY,$(filter-out %.c %.cc %.p %.ph, $(USERSRCS)))
+$(call ASSERT_EMPTY,$(filter-out %.c %.cc %.p %.ph %.proto, $(USERSRCS)))
 else
-$(call ASSERT_EMPTY,$(filter-out %.c %.cc, $(USERSRCS)))
+$(call ASSERT_EMPTY,$(filter-out %.c %.cc %.proto, $(USERSRCS)))
 endif
-$(call ASSERT_EMPTY,$(filter-out %.c, $(RTSRCS)))
+$(call ASSERT_EMPTY,$(filter-out %.c %.proto, $(RTSRCS)))
 
 ifeq ($(BUILD_PYTHON),yes)
 $(call TOOBJS,$(PYSRCS)) : EXTRAFLAGS += -fPIC $(call cc-option,-fno-strict-aliasing)
@@ -276,11 +280,17 @@ CXXUSERSRCS := $(filter %.cc,$(USERSRCS))
 CUSEROBJS := $(call TOOBJS,$(CUSERSRCS))
 CXXUSEROBJS += $(call TOOBJS,$(CXXUSERSRCS))
 
+# depend on $(GENERATED)
+objects/protodeps.d:
+	-mkdir -p objects
+	./mkprotodep -p protobuf/proto \
+            -e pb.h -e npb.h -e pb-c.h -e pb.cc -e npb.c -e pb-c.c \
+            -d objects -g protobuf/generated >objects/protodeps.d
 
 ifeq ($(TRIVIAL_BUILD),no)
 ifeq ($(USE_PROTOBUF),yes)
-Makefile:	depends/protodeps.d $(GENERATED)
--include depends/protodeps.d
+Makefile:	objects/protodeps.d $(GENERATED)
+-include objects/protodeps.d
 endif
 # Find the dependency filenames, then include them all
 DEPS := $(sort $(patsubst %.o,%.d,$(CUSEROBJS) $(CXXUSEROBJS)))
@@ -504,6 +514,17 @@ HEADERS := \
     rtapi/rtapi_mbarrier.h \
     rtapi/$(THREADS_SOURCE).h \
     rtapi/shmdrv/shmdrv.h
+
+ifeq ($(USE_PROTOBUF),yes)
+HEADERS += \
+	protobuf/pb-linuxcnc.h \
+	protobuf/container.h \
+	protobuf/json2pb/json2pb.h \
+	protobuf/json2pb/bin2ascii.h \
+	protobuf/nanopb/pb.h \
+	protobuf/nanopb/pb_encode.h \
+	protobuf/nanopb/pb_decode.h
+endif
 
 # need to do ths separately because the subdirectory is required
 # ../include/string.h would wreak havoc because it's the 

@@ -627,6 +627,34 @@ AC_ARG_ENABLE(emcweb,
       BUILD_EMCWEB=no
     ])
 
+##############################################################################
+# Subsection 2.3.1                                                           #
+# protobuf and zmq support                                                   #
+##############################################################################
+
+AC_MSG_CHECKING(whether to build protobuf bindings)
+AC_ARG_ENABLE(protobuf,
+    [  --enable-protobuf      generate protobuf-dependent code],
+    [
+	USE_PROTOBUF=yes
+        AC_MSG_RESULT([configuring for protobuf bindings])
+    ],
+    [
+      AC_MSG_RESULT([not generating protobuf bindings])
+      USE_PROTOBUF=no
+    ])
+
+AC_MSG_CHECKING(whether to build code depending on zeroMQ)
+AC_ARG_ENABLE(zeromq,
+    [  --enable-zeromq      generate zeroMQ-dependent code],
+    [
+	USE_ZEROMQ=yes
+        AC_MSG_RESULT([configuring for zeroMQ use])
+    ],
+    [
+      AC_MSG_RESULT([not relying on zeroMQ])
+      USE_ZEROMQ=no
+    ])
 
 ##############################################################################
 # Subsection 2.4                                                             #
@@ -1313,6 +1341,16 @@ fi
 AC_SUBST(BUILD_EMCWEB)
 if test "$BUILD_EMCWEB" = yes; then
    AC_DEFINE(BUILD_EMCWEB, [], [build emcweb UI])
+fi
+
+AC_SUBST(USE_PROTOBUF)
+if test "$USE_PROTOBUF" = yes; then
+   AC_DEFINE(USE_PROTOBUF, [], [protobuf bindings available])
+fi
+
+AC_SUBST(USE_ZEROMQ)
+if test "$USE_ZEROMQ" = yes; then
+   AC_DEFINE(USE_ZEROMQ, [], [zeroMQ library available])
 fi
 
 if test "$with_usermode_pci" = yes; then

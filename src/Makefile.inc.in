@@ -193,6 +193,12 @@ BUILD_EXAMPLES=@BUILD_EXAMPLES@
 # emcweb UI
 BUILD_EMCWEB=@BUILD_EMCWEB@
 
+# Google protobuf
+USE_PROTOBUF=@USE_PROTOBUF@
+
+# zeroMQ messaging
+USE_ZEROMQ=@USE_ZEROMQ@
+
 # shared memory kernel driver
 USE_SHMDRV=@USE_SHMDRV@
 

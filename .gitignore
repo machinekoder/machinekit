@@ -44,3 +44,4 @@ tests/bitops.0/bitops
 .\#*
 core.*
 **/DOTGIT
+src/protobuf/generated/*
