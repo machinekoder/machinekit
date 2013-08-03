@@ -1,0 +1,25 @@
+// 1. use _ to disambiguate from C/C++ types in LinuxCNC
+
+// 2. by using optional fields with default using code
+// may determine if a field was actually set, while still
+// receiving a default value if it wasnt
+// iow: this method of encoding supports NULL values
+// using code needs to inspect the has_<name> property
+// to discern whether a value was explicitly set or defaulted
+
+message Pm_Cartesian {
+    optional double x = 10 [default = 0.0];
+    optional double y = 20 [default = 0.0];
+    optional double z = 30 [default = 0.0];
+};
+
+message Emc_Pose {
+    required Pm_Cartesian  tran = 10;
+
+    optional double a = 20 [default = 0.0];
+    optional double b = 30 [default = 0.0];
+    optional double c = 40 [default = 0.0];
+    optional double u = 50 [default = 0.0];
+    optional double v = 60 [default = 0.0];
+    optional double w = 70 [default = 0.0];
+};

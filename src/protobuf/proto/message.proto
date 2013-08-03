@@ -1,0 +1,113 @@
+// use a self-describing format as suggested in protobuf docs
+// and on the mailing list
+
+//package hal.bind;
+
+
+import "nanopb.proto";
+import "types.proto";
+import "object.proto";
+import "rtapi_message.proto";
+import "motcmds.proto";
+import "halupdate.proto";
+import "test.proto";
+
+
+// cant use the more appropriate name 'Message' since protobuf uses that name
+message Telegram {
+    required TelegramOpType       op = 10;
+    optional bool              trace = 15;  // log from intermediaries
+    optional TelegramOpType in_reply_to = 20;
+    optional ReplyRequired    rsvp   = 30;
+    optional StatusType       status = 40;
+    optional int32            serial = 50;  // the command serial
+    optional int32      reply_serial = 60;  // echoes the command serial
+    optional int32         timestamp = 70;
+    optional Originator       origin = 80;
+    repeated Object           args   = 90;  //  [(nanopb).max_count = 20];
+    repeated Object      failed_args = 100; //  [(nanopb).max_count = 20];
+    optional string         errormsg = 110; //  [(nanopb).max_size = 100];
+
+}
+
+message TaskReply {
+    required int32  ticket   = 10;
+};
+
+// signal completion of a particular ticket
+message TicketUpdate {
+    required int32  cticket  = 10;
+    required RCS__STATUS  status   = 20;
+    optional string text     = 30;
+};
+
+
+message Container {
+
+    // see https://developers.google.com/protocol-buffers/docs/techniques#union
+    // for the principles behind this encoding
+
+    required ContainerType type = 1;
+
+    // protobuf-encoded submessages
+    // tags with values in the range 1 through 15 take one byte to encode
+    // so place the frequently used messages here
+    optional Telegram      telegram       = 2;  // the most general form of message
+    optional MotionCommand motcmd         = 3;  // new style
+    optional MotionStatus  motstat        = 4;  // new style
+    optional bytes         legacy_motcmd  = 5;  // emcmot_command_t wrapped in PB
+    optional bytes         legacy_motstat = 6;  // emcmot_status_t wrapped in PB
+    optional bytes         wou            = 7;  // Arais Wishbone-over-USB
+    optional HalUpdate     hal_update     = 8;  // halupdate protocol
+    optional RTAPI_Message rtapi_message  = 9;
+    optional TaskReply     task_reply     = 10;
+    optional TicketUpdate  ticket_update  = 11;
+
+    // tags in the range 16 through 2047 take two bytes.
+    // various blobs and less frequently used messages
+
+    optional bytes         syslog         = 18;  // RFC5424 syslog(3) encoding
+    optional bytes         legacy_nml     = 19;  // legacy NML container
+    optional bytes       legacy_motconfig = 20;  // emcmot_config_t wrapped in PB
+
+    // infrequent messages of the halupdate protocol:
+    optional Offer                  offer = 30;
+    optional ConfirmOffer         confirm = 35;
+    optional DisplayMessage    displaymsg = 40;
+    optional Shutdown            shutdown = 45;
+    optional ConfirmShutdown  confirm_shutdown = 50;
+
+    // miscellanous
+    optional string        ascii          = 100;
+    optional bytes         unicode        = 101;
+    optional string        gcode          = 102;
+    optional string        python         = 103;
+    optional bytes         pickle         = 104;
+    optional string        tcl            = 105;
+    optional string        xml            = 106;
+    optional string        json           = 107;
+    optional bytes         jpeg           = 108;
+    optional bytes         png            = 109;
+    optional bytes         tiff           = 110;
+    optional bytes         postscript     = 111;
+    optional bytes         svg            = 112;
+
+
+    // less commonly used types.
+
+    // firmware types. Add as needed
+    optional bytes         pru_firmware   = 2048;
+
+    // Mesanet firmware types: 3000 - 4000
+    optional bytes         mesa_5i20_firmware   = 3000;
+
+    // test message range: 5000-5100 - never used by core code
+    optional Test1         test1          = 5001;
+    optional Test2         test2          = 5002;
+    optional Test3         test3          = 5003;
+
+
+    // NB: do not use the numbers 19000 though 19999
+    // they are reserved for the Protocol Buffers implementation
+    // protoc will complain
+}

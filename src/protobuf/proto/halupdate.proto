@@ -1,0 +1,68 @@
+// Halupdate protocol messages
+
+import "types.proto";
+
+message OfferObject {
+    required string      name = 10;
+    required ValueType   type = 15;
+    required HalPinDirection direction = 20;
+    required fixed32  handle  = 30;
+
+    // subject to type field:
+    optional bool    halbit   = 35;
+    optional double  halfloat = 40;
+    optional sint32  hals32   = 45;
+    optional uint32  halu32   = 50;
+};
+
+message UpdateObject {
+    optional string      name = 10;
+    optional fixed32   handle = 30;
+    optional bool    halbit   = 35;
+    optional double  halfloat = 40;
+    optional sint32  hals32   = 45;
+    optional uint32  halu32   = 50;
+};
+
+message ConfirmObject {
+    optional string       name = 10;
+    optional fixed32    handle = 20;
+    required bool   willupdate = 30   [default = false];
+    optional float     epsilon = 40   [default = 0.0001];
+};
+
+message Offer {
+    // identity conveyed by zmq socket identitiy
+    // required string     identity = 10; // who we are
+    repeated OfferObject objects = 20; // what we have to offer
+};
+
+message ConfirmOffer {
+    // identity conveyed by zmq socket identitiy
+    // required string     identity = 10; // who she is
+    required fixed32   keepalive = 20 [default = 1000];  // timer in msec
+    required bool   estop_onfail = 30 [default = false]; // estop please if I disappear
+    repeated ConfirmObject confirmed = 40; // what she is interested in
+};
+
+message DisplayMessage {
+    required string    origin = 10;
+    required fixed32 severity = 20;
+    required string      text = 30;
+};
+
+message Shutdown {
+    // identity conveyed by zmq socket identitiy
+    // required string     identity = 10; // who we are
+    required string        cause = 20; // why we're doing this
+};
+
+message ConfirmShutdown {
+    // identity conveyed by zmq socket identitiy
+    // required string     myidentity = 10;    // who we are
+    required string     youridentity = 20;  // whose shutdown we're confirming
+};
+
+message HalUpdate {
+    repeated UpdateObject values = 10;
+};

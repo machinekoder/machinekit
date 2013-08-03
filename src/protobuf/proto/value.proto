@@ -1,0 +1,34 @@
+import "nanopb.proto";
+
+import "emcclass.proto";
+import "types.proto";
+
+// a value for 'passing around'.
+
+message Value {
+
+    required ValueType   type = 10;
+    // actual values
+
+    // One of the following must be filled in,
+    // depending on type.
+
+    // scalars
+    optional bool    halbit   = 100;
+    optional double  halfloat = 101;
+    optional sint32  hals32   = 102;
+    optional uint32  halu32   = 103;
+
+    optional bytes   v_bytes  = 120;
+    optional int32   v_int32  = 130;
+    optional int64   v_int63  = 140;
+    optional uint32  v_uint32 = 150;
+    optional uint64  v_uint63 = 160;
+    optional double  v_double = 170;
+    optional string  v_string = 180   [(nanopb).max_size = 41];
+    optional bool    v_bool   = 190;
+
+    // compound types
+    optional Pm_Cartesian       cartesian   = 200;
+    optional Emc_Pose           pose = 220;
+}
