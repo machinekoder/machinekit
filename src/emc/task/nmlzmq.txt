@@ -128,4 +128,229 @@ completion updates which are for previous commands.
 
 === Correlating commands and status
 
-TBD: reverse-engineer what might have been the intended semantics of current broken serial number mechanism.
+TBD: reverse-engineer what might have been the intended semantics of
+current broken serial number mechanism.
+
+=== Evaluation of results - current work-in-progress branch
+
+The following comments apply to
+https://github.com/mhaberler/linuxcnc/tree/zmq-submit-task-commands as
+per commit 19a8fd:
+
+. The setup and flows as laid out above do work, no discernible
+difference in performance. Since the number of task/UI interactions
+overall in a program run is very low, it'd be hard to tell either.
+
+. There is currently no protection against initial miss of messages
+over the PUB/SUB socket pair. (search for 'the subscriber will always miss the first messages that
+the publisher sends' in 'http://zguide.zeromq.org/page:all' for an
+explanation). This does not trigger in the current setup, and unlikely
+will, but a bulletproof measure to avoid the scenario would be
+valuable.
+
+. Update queue constipation by clients which never wait for a command
+completion ticket update: right now, task keeps publishing update
+tickets even if a subscriber is present and subscribed, but only
+rarely actually watches the subscribe socket and pulls completion
+updates (note ZMQ semantics assures this happens only if a subscriber
+is present; publish messages and no subscriber listening are dropped
+at the publisher side). What would happen if this goes for long stretches: The
+outgoing per-subscriber queue in the pub socket will overflow, and
+subsequent messages will not be added. This could lead to a deadlock
+situation where a client waits forever for an update which has been
+dropped to to queue overrun.
+
+==== Improvements to deal with these issues
+
+To close the first vulnerability:
+
+- we introduce a NOOP task command which will cause a normal ticket
+assignment and state update on the PUB channel on 'completion'.
+- at startup time, the client issues a (or a few up to a maximum) NOOP
+commands and retries until completion updates are received and match
+the request ticket number.
+- as a bonus, we get a liveness test of the task/UI interaction on
+startup.
+
+To deal with the second issue:
+
+. A client establishes a listener thread on the SUB socket, fetching
+ticket updates immediately as they come in. This thread atomically updates the
+highest ticket number seen and the corresponding status.
+
+. the main thread atomically reads the highest ticket number, and
+waits (up to a timeout maximum) if the currently issue ticket number
+isnt seen in the update stream with status RCS_DONE or RCS_ERROR yet.
+
+A side effect of fetching of updates in a separate thread is higher parallelism
+resulting in a a faster acknowledgement since the main thread doesnt
+have to read through the series of queued updates until the current
+ticket number and state is found;  during test runs, up to maybe 15
+queued updates have been seen.
+
+===== An alternate solution to the second issue:
+
+There is currently a feature under discussion tentatively named
+'ZMQ_FLAT_PULL' (see ZMQ developers mailing list of Jun 7 2013) which
+would deal with the queue obstipation issue by
+dropping older messages in case of contention (only the last
+message counts since the previous tickets are implicitly
+completed). The current behavior is to retain old messages and deny
+queue adds if the high water mark is reached.
+
+This would match closely the previous semantics of overwrites
+of a shared buffer in the NML transport.
+
+Downside: the feature isnt published yet, and also it is planned for
+ROUTER sockets; we'd prefer to have that behavior in a PUB socket.
+
+=== Building the work-in-progress branch
+
+This branch brings in Google Protobuf support, including message
+formats geared for LinuxCNC, to be found in `src/protobuf/proto`. All
+messages are translated into libraries and Python modules as follows:
+
+. C++ - using the stock Google Protobuf code, resulting in the
+`lib/liblinuxcncp-b2++.so.0` library
+
+. Python, also using stock Google Protobuf, resulting in modules in
+lib/python
+
+. C - using the C bindings package from
+http://code.google.com/p/protobuf-c/, resulting in the
+`lib/liblinuxcncp-b2.so.0` library
+
+. NanonPB C bindings - a C binding originally developed for embedded
+systems: http://koti.kapsi.fi/jpa/nanopb/ - this code is a bit more
+involved in use than the other C and C++ bindings, but the key
+advantage is that it can work in realtime code (kernel and userland)
+since it does not rely on dynamic memory allocation; resulting in
+`lib/liblinuxcnc-npb.so.0` (userland use) .
+
+==== Building the protobuf support code
+
+The following packages are needed in sufficiently recent form:
+
+. `libprotobuf-dev` - protocol buffers C++ library (development headers)
+. `libprotobuf5` - protocol buffers C++ library
+. `libprotoc-dev - protocol buffers compiler library (development headers)
+. `protobuf-compiler` - compiler for protocol buffer definition files
+. `python-protobuf` - Python bindings for protocol buffers
+. `libprotobuf-c0` - Protocol Buffers C library
+. `libprotobuf-c0-dev` - Protocol Buffers C static library and headers
+. `protobuf-c-compiler` - protocol buffers C compiler
+
+Nanopb has no package, but it's rather small and hence fully included
+in `src/protobuf/nanopb`.
+
+*I did not use those* - I do use protobuf and protobuf-c bindings
+compiled from the current development branches. This is the
+recommended method:
+
+==== Building the Google C++ protobuf support code
+
+This will install into /usr/local :
+
+ sudo apt-get install subversion
+ svn checkout http://protobuf.googlecode.com/svn/trunk/ protobuf-read-only
+ cd  protobuf-read-only
+
+ ./configure
+ make
+ make check
+ make install
+
+==== Building the Google Python protobuf support code
+
+The previous step must be completed before this:
+
+ cd python
+ python setup.py build
+ python setup.py test
+ python setup.py install
+
+==== Building the protobuf C support code
+
+See also: http://code.google.com/p/protobuf-c/wiki/Main_Page . For
+installation in /usr/local use:
+
+   svn checkout http://protobuf-c.googlecode.com/svn/trunk/ protobuf-c-read-only
+   cd protobuf-c-read-only
+   ./configure
+   make
+   sudo make install
+
+==== Building the zeromq support code
+
+===== Building libzmq
+
+This is the core support library. Proceed as follows to install in
+`/usr/local`:
+
+ git clone https://github.com/zeromq/libzmq.git
+ cd libzmq
+ ./configure
+ make
+ sudo make install
+
+===== Building czmq
+
+This is a higher-level C bindings library, used as API for C and
+C++. The build needs libzmq installed as above, then proceed:
+
+ git clone https://github.com/zeromq/czmq.git
+ cd czmq
+ ./configure
+ make
+ sudo make install
+
+===== Building the Pyzmq Python ZMQ bindings
+
+See https://github.com/zeromq/pyzmq/wiki/Building-and-Installing-PyZMQ
+
+To build pyzmq from the git repo requires Cython:
+
+   sudo apt-get install cython
+
+The Python bindings to ZMQ are built as follows:
+
+ git clone git://github.com/zeromq/pyzmq.git
+ cd pyzmq
+ python setup.py configure --zmq=/usr/local
+ sudo python setup.py install
+
+==== Building the work branch
+
+After the 27 above steps, you can now build the work branch..
+
+This requires the following configure options:
+
+Choose a flavor support by your os, like 'rtai-kernel', 'xenomai',
+'rt-preempt', or 'posix' (formerly 'simulator'), then:
+
+ cd src
+ sh autogen.sh
+ ./configure --with-<flavor> --enable-protobuf --enable-zeromq --enable-examples
+ make
+ sudo make setuid
+ . ../scripts/rip-environment
+
+==== Running the work branch
+
+Open a window and run the update listener Python program:
+
+  cd linuxcnc
+  . scripts/rip-environment
+  cd src/emc/task
+  python statustrack.py
+
+Now start linuxcnc like so in another window, enable ZMQ command
+ submission and debug output of message transactions:
+
+ cd linuxcnc
+ . scripts/rip-environment
+ USE_ZMQ=1 ZDEBUG=1 linuxcnc
+
+Choose for instance sim/axis/axis_mm.ini. Note the ticket updates in
+the statustrack.py window, and the protobuf messages going back and
+forth.
