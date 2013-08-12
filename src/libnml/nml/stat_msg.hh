@@ -22,6 +22,7 @@ class RCS_STAT_MSG:public NMLmsg {
     RCS_STAT_MSG(NMLTYPE t, size_t sz);
     NMLTYPE command_type;
     int echo_serial_number;
+    int ticket;
     int status;
     int state;
     int line;

@@ -27,6 +27,7 @@ RCS_STAT_MSG::RCS_STAT_MSG(NMLTYPE t, size_t sz):NMLmsg(t, sz)
 // just avoiding an inline function.
     command_type = -1;
     echo_serial_number = -1;
+    ticket = -1;
     status = -1;
     state = -1;
     line = -1;
@@ -39,6 +40,7 @@ int RCS_STAT_MSG_format(NMLTYPE t, void *buf, CMS * cms)
 {
     cms->update(((RCS_STAT_MSG *) buf)->command_type);
     cms->update(((RCS_STAT_MSG *) buf)->echo_serial_number);
+    cms->update(((RCS_STAT_MSG *) buf)->ticket);
     cms->update(((RCS_STAT_MSG *) buf)->status);
     cms->update(((RCS_STAT_MSG *) buf)->state);
     cms->update(((RCS_STAT_MSG *) buf)->line);
