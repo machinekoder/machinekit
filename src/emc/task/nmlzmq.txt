@@ -1,0 +1,131 @@
+
+= Migrating NML to a ZeroMQ transport
+
+:ini: {basebackend@docbook:'':ini}
+:hal: {basebackend@docbook:'':hal}
+:ngc: {basebackend@docbook:'':ngc}
+
+== Making NML disappear: the steps needed
+
+To get rid of NML, we need to replace two functions of the NML/RCS
+stack:
+
+- the transport function (shared memory and TCP)
+- the message serialisation/deserialisation function
+
+It has turned out that replacing the transport first, and
+serialisation second is a preferrable route as it allows coexistence
+and regression testing.
+
+We also need to replace the interaction patterns currently in use:
+
+
+=== Replacing the NML/RCS transport: the interaction patterns
+
+The basic functions currently in use are:
+
+. command submission
+. waiting for reception acknowledgement OR:
+. optionally waiting for command execution completion
+. status observation: basically peeking at the EMC_STAT structure.
+. error message distribution
+
+4 and 5 can be easily mapped onto the ZMQ PUB/SUB pattern, 1-3
+are a bit more involved:
+
+=== ZeroMQ flows in the task/gui interactions
+
+There will be no client-side serial numbers. The will be a single
+global ticket number managed by task.
+
+The basic idea of command submission with optionally waiting for
+completion is this:
+
+- clients have a name, and that is used as a ZMQ socket identity as
+  well as SUBSCRIBE channel name
+- submission always happens through an RPC mechanism, so the
+  'WaitReceived()' is implicit
+- command numbering - now called tickets - happens globally in task,
+  and are distributed to clients in the RPC reply
+- waiting for completion (optional) happens by listening for
+  completion updates in a separate PUBLISH channel fed by task. The
+  channel name mechanism is used to direct completion updates to their
+  respective originators (aka 'client').
+
+
+==== Server setup - task:
+
+- task creates a PUB socket with a low high water mark (for sending status updates
+  on command completion)
+- task creates an ROUTER socket (command submission listener)
+- task maintains a global uniqe serial, which is the command ticket
+  number.
+- task listens on ROUTER socket.
+
+==== client setup - shmcom.cc, emcmodule.cc etc:
+
+- client creates an unique identity string, eg composed of name, pid and IP
+  address
+- client creates a DEALER socket for command transmission
+- client sets the DEALER socket identity to the above unique string
+- client creates a SUB socket, sets identity to the above unique string
+- client binds to the server PUB socket, subscribing for for 'command
+  complete' updates
+
+==== command submission phase:
+
+- client prepares command message, and submits it to the DEALER socket
+- task receives request, pulls a new ticket number, packs it into
+  reply
+- task records client identity from socket identity string (see
+  'client setup')
+- client receives reply from task, now has a command ticket number:
+  this is the semantic equivalent of emcCommandWaitReceived() in shcom.cc .
+- task records the originator of each command.
+
+==== command execution and completion phase (task)
+
+Once the command is processed, there is a status - success or some
+failure detail (RCS_DONE/RCS_ERROR).
+
+On completion, task
+
+- determines the originator of the command (socket identity - must be
+  cached in task)
+- creates a status update message with success/error report
+- pushes this update into the PUB channel with the originator identity
+  as a channel attribute.
+
+==== command execution and completion phase (client)
+
+if the client desires to wait for command completion (equivalent of
+shcom.cc:emcCommandWaitDone()):
+
+- after receiving the initial reply from task (see command submission
+  phase) the client loops on the SUB socket, receiving command
+  completion messages, with a timeout.
+
+-  due to the channel name used for pushing the update by task, which is
+  identically to the client identity, there will only be
+  updates for commands originated by this client coming through this
+  channel.
+
+- the client compares the completion message ticket number with the
+  ticket number passed in the initial reply. As soon as this ticket
+  number is seen in the update, this indicates command completion as
+  in emcCommandWaitDone().
+
+==== completion updates a client isnt interested in
+
+Due to the high water mark mechanism in the PUB socket, unread updates
+are eventually discarded. If there are queued updates for previous
+commands which the client wasnt interested in, but now is interested
+in the completion status of a particular command, the ticket number,
+and total ordering of ticket number, enables the client to skip
+completion updates which are for previous commands.
+
+
+
+=== Correlating commands and status
+
+TBD: reverse-engineer what might have been the intended semantics of current broken serial number mechanism.
