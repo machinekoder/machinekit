@@ -32,7 +32,8 @@ enum RCS_STATUS {               /* Originally from nml_mod.hh */
     UNINITIALIZED_STATUS = -1,
     RCS_DONE = 1,
     RCS_EXEC = 2,
-    RCS_ERROR = 3
+    RCS_ERROR = 3,
+    RCS_RECEIVED = 4
 };
 
 #include "nml_type.hh"
