@@ -227,6 +227,101 @@ advantage is that it can work in realtime code (kernel and userland)
 since it does not rely on dynamic memory allocation; resulting in
 `lib/liblinuxcnc-npb.so.0` (userland use) .
 
+==== Installing the package prerequisites on wheezy
+
+All packages except one (czmq) can be fetched from the wheezy or
+jessie archives. Proceed like so:
+
+I assume we'll use stable by default, so edit:
+
+  sudo vi /etc/apt/apt.conf
+
+and add
+
+  APT::Default-Release "stable";
+
+Next, add the jessie reference to /etc/apt/sources.list . Mine looks
+like so:
+
+ deb http://ftp.de.debian.org/debian/ wheezy main contrib non-free
+ deb-src http://ftp.de.debian.org/debian/ wheezy main contrib non-free
+
+ deb http://ftp.de.debian.org/debian/ jessie main contrib non-free
+ deb-src http://ftp.de.debian.org/debian/ jessie main contrib non-free
+
+ deb http://ftp.de.debian.org/debian/ wheezy-updates main contrib non-free
+ deb-src http://ftp.de.debian.org/debian/ wheezy-updates main contrib non-free
+
+ deb http://security.debian.org/ wheezy/updates main contrib non-free
+ deb-src http://security.debian.org/ wheezy/updates main contrib non-free
+
+Now do:
+
+ apt-get update
+ apt-get install libprotobuf-dev libprotoc-dev protobuf-compiler \
+ python-protobuf  libprotobuf-c0-dev protobuf-c-compiler \
+ fakeroot dpkg-dev libpgm-dev python-setuptools
+
+We need these packages from jessie/testing as the wheezy ones are too old:
+
+ apt-get install -t testing libzmq3-dev libjansson-dev
+
+The Pyzmq bindings are installed like so:
+
+ sudo easy_install pyzmq
+
+The only non-stock package is czmq, build like so:
+
+ git clone https://github.com/ellysh/czmq
+ cd czmq
+ dpkg-buildpackage -rfakeroot -b  -us -uc
+ cd ..
+ sudo dpkg -i libczmq*.deb
+
+Done! just 22 or so easy steps ;-)
+
+
+==== Building the work branch
+
+After the 22 or so above steps, you can now build the work branch..
+
+This requires the following configure options:
+
+Choose a flavor support by your os, like 'rtai-kernel', 'xenomai',
+'rt-preempt', or 'posix' (formerly 'simulator'), then:
+
+ cd src
+ sh autogen.sh
+ ./configure --with-<flavor> --enable-protobuf --enable-zeromq --enable-examples
+ make
+ sudo make setuid
+ . ../scripts/rip-environment
+
+==== Running the work branch
+
+Open a window and run the update listener Python program:
+
+  cd linuxcnc
+  . scripts/rip-environment
+  cd src/emc/task
+  python statustrack.py
+
+Now start linuxcnc like so in another window, enable ZMQ command
+ submission and debug output of message transactions:
+
+ cd linuxcnc
+ . scripts/rip-environment
+ USE_ZMQ=1 ZDEBUG=1 linuxcnc
+
+Choose for instance sim/axis/axis_mm.ini. Note the ticket updates in
+the statustrack.py window, and the protobuf messages going back and
+forth.
+
+=== Building all support packages from source
+
+(NOT recommended, for reference only)
+
+
 ==== Building the protobuf support code
 
 The following packages are needed in sufficiently recent form:
@@ -239,6 +334,7 @@ The following packages are needed in sufficiently recent form:
 . `libprotobuf-c0` - Protocol Buffers C library
 . `libprotobuf-c0-dev` - Protocol Buffers C static library and headers
 . `protobuf-c-compiler` - protocol buffers C compiler
+. `libjansson-dev` - JSON C bindings for protobuf/JSON conversion
 
 Nanopb has no package, but it's rather small and hence fully included
 in `src/protobuf/nanopb`.
@@ -319,38 +415,5 @@ The Python bindings to ZMQ are built as follows:
  python setup.py configure --zmq=/usr/local
  sudo python setup.py install
 
-==== Building the work branch
 
-After the 27 above steps, you can now build the work branch..
 
-This requires the following configure options:
-
-Choose a flavor support by your os, like 'rtai-kernel', 'xenomai',
-'rt-preempt', or 'posix' (formerly 'simulator'), then:
-
- cd src
- sh autogen.sh
- ./configure --with-<flavor> --enable-protobuf --enable-zeromq --enable-examples
- make
- sudo make setuid
- . ../scripts/rip-environment
-
-==== Running the work branch
-
-Open a window and run the update listener Python program:
-
-  cd linuxcnc
-  . scripts/rip-environment
-  cd src/emc/task
-  python statustrack.py
-
-Now start linuxcnc like so in another window, enable ZMQ command
- submission and debug output of message transactions:
-
- cd linuxcnc
- . scripts/rip-environment
- USE_ZMQ=1 ZDEBUG=1 linuxcnc
-
-Choose for instance sim/axis/axis_mm.ini. Note the ticket updates in
-the statustrack.py window, and the protobuf messages going back and
-forth.
