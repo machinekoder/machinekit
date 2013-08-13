@@ -193,7 +193,7 @@ static int setup_zmq(void)
 
     // shutdown socket immediately if unsent messages
     zsocket_set_linger (cmd, 0);
-    zsocket_set_identity (cmd, cmdid);
+    zsocket_set_identity (cmd, (char *) cmdid);
 
     rc = zsocket_bind(cmd, cmdsocket);
     assert (rc != 0);
