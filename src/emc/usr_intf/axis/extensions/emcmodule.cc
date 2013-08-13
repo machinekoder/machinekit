@@ -32,7 +32,7 @@
 #include "rcs_print.hh"
 
 #include <cmath>
-//#include <google/protobuf/text_format.h>
+
 #include <google/protobuf/message_lite.h>
 
 #include <protobuf/generated/types.pb.h>
@@ -111,7 +111,7 @@ struct pyErrorChannel {
 static PyObject *m = NULL, *error = NULL;
 
 static zctx_t *z_context;
-static void *z_task, *z_update;
+static void *z_task;
 static bool use_zmq;
 static bool zdebug;
 static char z_ident[20];
@@ -119,10 +119,66 @@ static char z_ident[20];
 #define REPLY_TIMEOUT 3000 //ms
 #define UPDATE_TIMEOUT 3000 //ms
 
+// ticket update subscriber
+static pthread_t listener_thread;
+// initially unlocked, for atomic updates to last_*_seen:
+static pthread_mutex_t status_mutex = PTHREAD_MUTEX_INITIALIZER;
+static volatile int last_ticket_seen = -1;
+static volatile int last_status_seen =  UNINITIALIZED_STATUS;
+
+static zctx_t *l_context;
+static void *l_update;
+
+static void listener_cleanup(void *arg)
+{
+    if (zdebug)
+	fprintf(stderr, "listener_cleanup() called\n");
+    zsocket_destroy (l_context, l_update);
+    zctx_destroy (&l_context);
+}
+
+static void *
+listener (void *identity)
+{
+
+    l_context = zctx_new ();
+    l_update = zsocket_new (l_context, ZMQ_SUB);
+    zsocket_set_subscribe (l_update, z_ident);
+    assert(zsocket_connect (l_update, "tcp://127.0.0.1:5557") == 0);
+
+    // cleanup handler on cancellation
+    pthread_cleanup_push(listener_cleanup, NULL);
+
+    do {
+	zmsg_t *m_update = zmsg_recv (l_update);
+	Container update;
+        char *dest = zmsg_popstr (m_update);
+	free(dest);
+	zframe_t *pb_update  = zmsg_pop (m_update);
+
+	assert(update.ParseFromArray(zframe_data(pb_update),
+				     zframe_size(pb_update)));
+	zmsg_destroy(&m_update);
+
+	assert(update.type() == MT_TICKET_UPDATE);
+	assert(update.has_ticket_update());
+
+	pthread_mutex_lock (&status_mutex);
+	last_status_seen = update.ticket_update().status();
+	last_ticket_seen = update.ticket_update().cticket();
+	pthread_mutex_unlock (&status_mutex);
+
+	if (zdebug)
+	    fprintf(stderr, "listener %s: cticket = %d status=%d\n",
+		    z_ident, last_ticket_seen, last_status_seen);
+    } while (1);
+    static int cleanup_pop_arg;
+    pthread_cleanup_pop(cleanup_pop_arg);
+    return NULL;
+}
+
 static int z_init(void)
 {
-    int rc;
-
     if (z_context)  // singleton - once only
 	return 0;
 
@@ -138,25 +194,29 @@ static int z_init(void)
 
     snprintf(z_ident, sizeof(z_ident), "emcmod%d", getpid());
 
-    z_context = zctx_new ();
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    assert(pthread_create(&listener_thread, &attr, listener,z_ident) == 0);
+    pthread_attr_destroy(&attr);
 
+    z_context = zctx_new ();
     z_task = zsocket_new (z_context, ZMQ_DEALER);
     zsocket_set_linger (z_task, 0);
     zsocket_set_identity (z_task, z_ident);
     zsocket_set_rcvtimeo (z_task, REPLY_TIMEOUT);
-    rc = zsocket_connect(z_task, "tcp://127.0.0.1:5556");
-    assert (rc == 0);
-
-    z_update = zsocket_new (z_context, ZMQ_SUB);
-    zsocket_set_subscribe (z_update, z_ident);
-    zsocket_set_rcvtimeo (z_update, UPDATE_TIMEOUT);
-
-    rc = zsocket_connect (z_update, "tcp://127.0.0.1:5557");
-    assert (rc == 0);
-
+    assert(zsocket_connect(z_task, "tcp://127.0.0.1:5556") == 0);
     return 0;
 }
 
+// called on module unload
+static void z_shutdown(void)
+{
+    void *status;
+
+    assert(pthread_cancel(listener_thread) == 0);
+    assert(pthread_join(listener_thread, &status) == 0);
+}
 
 static int z_submit(void *rcs_cmd, size_t rcs_cmdsize)
 {
@@ -320,77 +380,29 @@ static int emcWaitCommandComplete(int serial_number, RCS_STAT_CHANNEL *s, double
     return -1;
 }
 
-// same as above, but using new ticket scheme:
-// not very bright right now regarding timeouts, FIXME
 static int waitTicketCompleted(int ticket, double timeout)
 {
-    //    int rc = s_wait_for_ticket(z_update, ticket, timeout);
-    static int last_ticket = -1;
-    static int last_status = -1;
+    int last_status, last_ticket;
 
-    if (zdebug)
-	fprintf(stderr, "wait_for_ticket: %d\n", ticket);
-
-    // using code might ask for the same ticket several times!
-    if (ticket == last_ticket) {
-	if (zdebug)
-	    fprintf(stderr, "%s: return cached answer: %d %d\n",
-		    z_ident, last_ticket, last_status);
-	return last_status;
-    }
-
-    // emcwaitdone equivalent: listen on update channel until our
-    // ticket shows up with RCS_DONE or RCS_ERROR
+    double start = etime();
     do {
-	zmsg_t *m_update = zmsg_recv (z_update);
+	// read ticket, status - critical region
+	pthread_mutex_lock (&status_mutex);
+	last_status = last_status_seen;
+	last_ticket = last_ticket_seen;
+	pthread_mutex_unlock (&status_mutex);
 
-	Container update;
-	int status, cticket;
+	assert(last_ticket <= ticket); // invariant
 
-	if (m_update == NULL) {
-	    fprintf(stderr, "no ticket update after %g secs - task running?\n", timeout);
-	    return -ETIMEDOUT;
-	}
-        char *dest = zmsg_popstr (m_update);
-	free(dest);
-	zframe_t *pb_update  = zmsg_pop (m_update);
+        if ((last_ticket == ticket) &&
+	    ((last_status == RCS_DONE) ||
+	     (last_status == RCS_ERROR)))
+	    return last_status;
 
-	assert(update.ParseFromArray(zframe_data(pb_update),zframe_size(pb_update)));
-	zmsg_destroy(&m_update);
-
-	assert(update.type() == MT_TICKET_UPDATE);
-	assert(update.has_ticket_update());
-
-	status = update.ticket_update().status();
-	cticket = update.ticket_update().cticket();
-
-	if (zdebug)
-	    fprintf(stderr, "update.ticket_update.cticket = %d status=%d\n",
-		    cticket, status);
-
-	if (ticket == cticket) {
-	    // the ticket we got handed back changed state:
-	    last_ticket = cticket;
-	    last_status = status;
-
-	    switch (status) {
-	    case RCS_DONE:
-		if (zdebug)
-		    fprintf(stderr, "ticket %d OK\n", ticket);
-		return status;
-		break;
-
-	    case RCS_ERROR:
-		if (zdebug)
-		    fprintf(stderr, "ticket %d ERROR\n", ticket);
-		return status;
-		break;
-
-	    default:
-		;
-	    }
-	}
-    } while (1);
+        double now = etime();
+        esleep(fmin(timeout - (now - start), EMC_COMMAND_DELAY));
+    } while (etime() - start < timeout);
+    return -ETIMEDOUT;
 }
 
 
@@ -2674,6 +2686,7 @@ initlinuxcnc(void) {
     ENUM(RCS_ERROR);
 
     z_init();
+    Py_AtExit(z_shutdown);
 }
 
 
