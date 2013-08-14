@@ -45,13 +45,17 @@ int main(int argc, char* argv[])
     // generate a subtelegram on the fly:
     telegram = container.mutable_telegram();
 
+
     telegram->set_op(UPDATE);
     telegram->set_serial(56789);
     telegram->set_rsvp(NONE);
 #if 0
+    // this doesnt work with the jessie protobuf package yet
+    // but not terribly important
     // plug in the prepared origin submessage
     telegram->set_allocated_origin(origin);
 #endif
+
     // add optional submessage(s)
     object = telegram->add_args();
     object->set_type(HAL__PIN);
