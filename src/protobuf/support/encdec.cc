@@ -48,10 +48,10 @@ int main(int argc, char* argv[])
     telegram->set_op(UPDATE);
     telegram->set_serial(56789);
     telegram->set_rsvp(NONE);
-
+#if 0
     // plug in the prepared origin submessage
     telegram->set_allocated_origin(origin);
-
+#endif
     // add optional submessage(s)
     object = telegram->add_args();
     object->set_type(HAL__PIN);
