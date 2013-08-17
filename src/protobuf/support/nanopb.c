@@ -6,8 +6,7 @@
 // actual message definitions derived from .proto files are in a
 // separate module
 
-#include "rtapi.h"		/* RTAPI realtime OS API */
-#include "rtapi_app.h"		/* RTAPI realtime module decls */
+#include "rtapi_export.h"
 
 #include <protobuf/pb-linuxcnc.h>
 #include <protobuf/nanopb/pb_decode.h>
