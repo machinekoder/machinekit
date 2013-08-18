@@ -45,3 +45,5 @@ tests/bitops.0/bitops
 core.*
 **/DOTGIT
 src/protobuf/generated/*
+lib/python/*_pb2.py
+lib/python/pb2json.py
