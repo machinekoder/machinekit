@@ -194,6 +194,9 @@ BUILD_EXAMPLES=@BUILD_EXAMPLES@
 # emcweb UI
 BUILD_EMCWEB=@BUILD_EMCWEB@
 
+# 7i80 rtnet driver (xenomai user only)
+BUILD_7I80=@BUILD_7I80@
+
 # shared memory kernel driver
 USE_SHMDRV=@USE_SHMDRV@
 
