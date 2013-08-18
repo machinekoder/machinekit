@@ -486,6 +486,8 @@ function Cleanup() {
         sleep .2
     done
 
+    bash stop_net.sh
+
     echo "Removing HAL_LIB, RTAPI, and Real Time OS modules" >>$PRINT_FILE
     $REALTIME stop
 
@@ -601,6 +603,9 @@ fi
 export INI_FILE_NAME="$INIFILE"
 $EMCSERVER -ini "$INIFILE" &
 sleep 1
+
+
+bash start_net.sh
 
 # 4.3.2. Start REALTIME
 echo "Loading Real Time OS, RTAPI, and HAL_LIB modules" >>$PRINT_FILE
