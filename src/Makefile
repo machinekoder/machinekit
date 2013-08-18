@@ -1138,6 +1138,9 @@ hm2_pci-objs  :=			  \
     hal/drivers/mesa-hostmot2/hm2_pci.o   \
     hal/drivers/mesa-hostmot2/bitfile.o   \
     $(MATHSTUB)
+hm2_eth-objs  :=			  \
+    hal/drivers/mesa-hostmot2/hm2_eth.o   \
+    $(MATHSTUB)
 hm2_test-objs :=			  \
     hal/drivers/mesa-hostmot2/hm2_test.o  \
     hal/drivers/mesa-hostmot2/bitfile.o   \
@@ -1161,7 +1164,7 @@ hostmot2-objs +=			  \
 endif
 
 ifeq ($(BUILD_HOSTMOT2),yes)
-obj-$(CONFIG_HOSTMOT2) += hm2_pci.o
+obj-$(CONFIG_HOSTMOT2) += hm2_pci.o hm2_eth.o
 hm2_pci-objs  :=			  \
     hal/drivers/mesa-hostmot2/hm2_pci.o   \
     hal/drivers/mesa-hostmot2/bitfile.o   \
@@ -1353,6 +1356,11 @@ $(RTLIBDIR)/hm2_test$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_test-objs))
 endif
 
 ifeq ($(BUILD_7I80),yes)
+
+# this is super-kludgy - FIXTHIS. The rtdm lib location needs to be figured
+# by configure.in.
+$(RTLIBDIR)/hm2_eth$(MODULE_EXT):  EXTRA_LDFLAGS += -lrtdm $(XENOMAI_THREADS_LDFLAGS)
+
 $(RTLIBDIR)/hm2_eth$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_eth-objs))
 endif
 
