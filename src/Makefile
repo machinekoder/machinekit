@@ -1147,6 +1147,12 @@ setsserial-objs :=			  \
     $(MATHSTUB)
 endif
 
+ifeq ($(BUILD_7I80),yes)
+hm2_eth-objs  :=			  \
+    hal/drivers/mesa-hostmot2/hm2_eth.o   \
+    $(MATHSTUB)
+endif
+
 ifeq ($(USERMODE_PCI),yes)
 hostmot2-objs +=			  \
     rtapi/userpci/device.o		  \
@@ -1344,6 +1350,10 @@ $(RTLIBDIR)/hostmot2$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hostmot2-objs))
 $(RTLIBDIR)/hm2_7i43$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_7i43-objs))
 $(RTLIBDIR)/hm2_pci$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_pci-objs))
 $(RTLIBDIR)/hm2_test$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_test-objs)) 
+endif
+
+ifeq ($(BUILD_7I80),yes)
+$(RTLIBDIR)/hm2_eth$(MODULE_EXT): $(addprefix $(OBJDIR)/,$(hm2_eth-objs))
 endif
 
 ifeq ($(TARGET_PLATFORM),beaglebone)
