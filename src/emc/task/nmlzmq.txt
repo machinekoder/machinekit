@@ -417,3 +417,23 @@ The Python bindings to ZMQ are built as follows:
 
 
 
+=== Raspberry install
+
+as per wheezy plus:
+
+apt-get install debhelper  autotools-dev
+ apt-get install autoconf m4 python-dev
+
+    4  cd
+    5  git clone https://github.com/zeromq/libzmq.git
+    6  ls
+    7  git clone git://anonscm.debian.org/collab-maint/zeromq3.git
+    8  cd zeromq3/
+    9  ls
+   10  dpkg-buildpackage -rfakeroot -b  -us -uc
+
+
+wheezy too
+
+apt-get install debhelper autotools-dev autoconf pkg-config
+ libmodbus-dev
