@@ -29,7 +29,6 @@
 *                    KERNEL MODULE PARAMETERS                          *
 ************************************************************************/
 
-static int key = DEFAULT_MOTION_SHMEM_KEY;		/* the shared memory key, default value */
 /* module information */
 /* register symbols to be modified by insmod
    see "Linux Device Drivers", Alessandro Rubini, p. 385
@@ -39,7 +38,7 @@ MODULE_DESCRIPTION("Motion Controller for EMC");
 MODULE_LICENSE("GPL");
 
 /* RTAPI shmem key - for comms with higher level user space stuff */
-static int key = DEFAULT_SHMEM_KEY;	/* the shared memory key, default value */
+static int key = DEFAULT_MOTION_SHMEM_KEY;	/* the shared memory key, default value */
 RTAPI_MP_INT(key, "shared memory key");
 static long base_period_nsec = 0;	/* fastest thread period */
 RTAPI_MP_LONG(base_period_nsec, "fastest thread period (nsecs)");
@@ -53,11 +52,11 @@ static int servo_cpu = -1;		/* explicitly bind to CPU */
 RTAPI_MP_INT(servo_cpu, "CPU of servo thread");
 static long traj_period_nsec = 0;	/* trajectory planner period */
 RTAPI_MP_LONG(traj_period_nsec, "trajectory planner period (nsecs)");
-static int num_joints = EMCMOT_MAX_JOINTS;	/* default number of joints present */
+int num_joints = EMCMOT_MAX_JOINTS;	/* default number of joints present */
 RTAPI_MP_INT(num_joints, "number of joints");
-static int num_dio = DEFAULT_DIO;	/* default number of motion synched DIO */
+int num_dio = DEFAULT_DIO;	/* default number of motion synched DIO */
 RTAPI_MP_INT(num_dio, "number of digital inputs/outputs");
-static int num_aio = DEFAULT_AIO;	/* default number of motion synched AIO */
+int num_aio = DEFAULT_AIO;	/* default number of motion synched AIO */
 RTAPI_MP_INT(num_aio, "number of analog inputs/outputs");
 
 /***********************************************************************
