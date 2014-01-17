@@ -530,9 +530,13 @@ AC_ARG_WITH(platform,
 		TARGET_PLATFORM=beaglebone
                 AC_MSG_RESULT([configuring for BeagleBone board])
             ;;
+            udoo)
+		TARGET_PLATFORM=udoo
+                AC_MSG_RESULT([configuring for Udoo board])
+            ;;
         esac
 	if test -z "$TARGET_PLATFORM"; then
-	   AC_MSG_ERROR([ I dont understand $enableval, just PC, raspberry, or beaglebone ]) 
+	   AC_MSG_ERROR([ I dont understand $enableval, just PC, raspberry, udoo, or beaglebone ]) 
 	fi
     ],
     [
@@ -1371,6 +1375,10 @@ fi
 if test "$TARGET_PLATFORM" = "beaglebone"; then
    TARGET_PLATFORM_BEAGLEBONE=1
    AC_DEFINE(TARGET_PLATFORM_BEAGLEBONE, [], [build for BeagleBone platform])
+fi
+if test "$TARGET_PLATFORM" = "udoo"; then
+   TARGET_PLATFORM_UDOO=1
+   AC_DEFINE(TARGET_PLATFORM_UDOO, [], [build for Udoo platform])
 fi
 AC_SUBST(TARGET_PLATFORM)
 
