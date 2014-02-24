@@ -371,33 +371,33 @@ static void signal_handler(int sig)
     // no point in keeping rtapi_app running if msgd exits
     if (global_data->rtapi_app_pid > 0) {
 	kill(global_data->rtapi_app_pid, SIGTERM);
-	syslog(LOG_INFO,"sent SIGTERM to rtapi (pid %d)\n",
-	       global_data->rtapi_app_pid);
+	/* syslog(LOG_INFO,"sent SIGTERM to rtapi (pid %d)\n", */
+	/*        global_data->rtapi_app_pid); */
     }
 
     switch (sig) {
     case SIGTERM:
     case SIGINT:
-	syslog(LOG_INFO, "msgd:%d: %s - shutting down\n",
-	       rtapi_instance, strsignal(sig));
+	/* syslog(LOG_INFO, "msgd:%d: %s - shutting down\n", */
+	/*        rtapi_instance, strsignal(sig)); */
 
 	// hint if error ring couldnt be served fast enough,
 	// or there was contention
 	// none observed so far
 	// this might be interesting to hear about
-	if (global_data && (global_data->error_ring_full ||
-			    global_data->error_ring_locked))
-	    syslog(LOG_INFO, "msgd:%d: message ring stats: full=%d locked=%d ",
-		   rtapi_instance,
-		   global_data->error_ring_full,
-		   global_data->error_ring_locked);
+	/* if (global_data && (global_data->error_ring_full || */
+	/* 		    global_data->error_ring_locked)) */
+	/*     syslog(LOG_INFO, "msgd:%d: message ring stats: full=%d locked=%d ", */
+	/* 	   rtapi_instance, */
+	/* 	   global_data->error_ring_full, */
+	/* 	   global_data->error_ring_locked); */
 	msgd_exit++;
 	break;
 
     default: // pretty bad
-	syslog(LOG_ERR,
-	       "msgd:%d: caught signal %d '%s' - dumping core (current dir=%s)\n",
-	       rtapi_instance, sig, strsignal(sig), get_current_dir_name());
+	/* syslog(LOG_ERR, */
+	/*        "msgd:%d: caught signal %d '%s' - dumping core (current dir=%s)\n", */
+	/*        rtapi_instance, sig, strsignal(sig), get_current_dir_name()); */
 	closelog();
 	sleep(1); // let syslog drain
 	signal(SIGABRT, SIG_DFL);
