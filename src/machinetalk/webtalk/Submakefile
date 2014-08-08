@@ -1,5 +1,8 @@
 WEBTALK_DIR := machinetalk/webtalk
 
+# see https://github.com/somdoron/rfc/blob/master/spec_39.txt
+ZWS_SUPPORT := -DZWS_SUPPORT
+
 # install this so out of tree policy plugins can compile against this
 INCLUDES +=  $(WEBTALK_DIR)
 
@@ -22,7 +25,8 @@ WEBTALK_CXXFLAGS := 		\
 	$(SSL_CFLAGS)		\
 	$(UUID_CFLAGS) 		\
 	$(AVAHI_CFLAGS) 	\
-	$(URIPARSER_CFLAGS)
+	$(URIPARSER_CFLAGS)	\
+	$(ZWS_SUPPORT)
 
 WEBTALK_LDFLAGS := 		\
 	$(PROTOBUF_LIBS)	\
@@ -56,17 +60,35 @@ TARGETS += ../bin/webtalk
 ../include/%.hh: ./$(WEBTALK_DIR)/%.hh
 	cp $^ $@
 
-# DEMOPLUGIN_SRCS := $(addprefix $(WEBTALK_DIR)/, \
-# 	webtalk_demopolicy.cc) \
-# 	machinetalk/tutorial/protobuf/demo.pb.cc
 
-# USERSRCS += $(DEMOPLUGIN_SRCS)
+EXAMPLE_PLUGIN_SRCS := $(addprefix $(WEBTALK_DIR)/, \
+	webtalk_example_policy.cc)
 
-# $(call TOOBJSDEPS, $(DEMOPLUGIN_SRCS)) : EXTRAFLAGS += $(WEBTALK_CXXFLAGS) -fpic -Wall
+$(call TOOBJSDEPS, $(EXAMPLE_PLUGIN_SRCS)) : EXTRAFLAGS += \
+	$(WEBTALK_CXXFLAGS) \
+	-fpic -Wall -std=c++0x -g
 
-# ../lib/webtalk/demolugin.o: $(call TOOBJS, $(DEMOPLUGIN_SRCS))
-# 	@mkdir -p $(dir $@)
-# 	$(ECHO) Linking $(notdir $@)
-# 	$(Q)$(CC) -o $@ $^ -shared
+../lib/webtalk/plugins/example.o: $(call TOOBJS, $(EXAMPLE_PLUGIN_SRCS))
+	@mkdir -p $(dir $@)
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ -shared
 
-# TARGETS += ../lib/webtalk/demoplugin.o
+USERSRCS += $(EXAMPLE_PLUGIN_SRCS)
+TARGETS += ../lib/webtalk/plugins/example.o
+
+
+
+ZWS_PLUGIN_SRCS := $(addprefix $(WEBTALK_DIR)/, \
+	webtalk_zws_policy.cc)
+
+$(call TOOBJSDEPS, $(ZWS_PLUGIN_SRCS)) : EXTRAFLAGS += \
+	$(WEBTALK_CXXFLAGS) \
+	-fpic -Wall -std=c++0x -g
+
+../lib/webtalk/plugins/zws.o: $(call TOOBJS, $(ZWS_PLUGIN_SRCS))
+	@mkdir -p $(dir $@)
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) -o $@ $^ -shared
+
+USERSRCS += $(ZWS_PLUGIN_SRCS)
+TARGETS += ../lib/webtalk/plugins/zws.o
