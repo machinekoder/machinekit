@@ -1714,7 +1714,7 @@ class LinuxCNCWrapper:
         elif self.rx.type == MT_EMC_TASK_SET_STATE:
             if self.rx.HasField('emc_command_params') \
             and self.rx.emc_command_params.HasField('task_state'):
-                self.command.task_state(self.rx.emc_command_params.task_state)
+                self.command.state(self.rx.emc_command_params.task_state)
             else:
                 self.send_command_wrong_params()
 
