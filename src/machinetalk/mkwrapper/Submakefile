@@ -1,5 +1,3 @@
-#ifdef HAVE_MACHINETALK
-
 MKWDIR := machinetalk/mkwrapper
 
 MKWRAPPER_COMP_PY = mkwrapper
@@ -13,4 +11,3 @@ $(patsubst %, ../bin/%, $(MKWRAPPER_COMP_PY)) : ../bin/%: $(MKWDIR)/%.py
 PYTARGETS += $(patsubst %, ../bin/%, $(MKWRAPPER_COMP_PY))
 
 
-#endif # HAVE_MACHINETALK
