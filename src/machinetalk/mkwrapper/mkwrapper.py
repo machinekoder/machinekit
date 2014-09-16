@@ -2010,7 +2010,6 @@ class LinuxCNCWrapper():
                     if self.rx.interp_name == 'execute':
                         self.command.program_open(fileName)
                     elif self.rx.interp_name == 'preview':
-
                         self.preview.program_open(fileName)
                 else:
                     self.send_command_wrong_params()
