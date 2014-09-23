@@ -927,9 +927,9 @@ AC_ARG_ENABLE(nml,
     ])
 
 ##############################################################################
-# Subsection 2.3.1                                                           #
+# Subsection 2.3.2                                                           #
+# Dependencies for mkwrapper                                                 #
 # pyftpdlib                                                                  #
-#                                                                            #
 ##############################################################################
 
 AC_PYTHON_MODULE(pyftpdlib.authorizers, failed to import pyftpdlib.authorizers
