@@ -939,6 +939,7 @@ install-python: install-dirs
 	$(EXE) ../bin/teach-in $(DESTDIR)$(bindir)
 	$(EXE) ../bin/tracking-test $(DESTDIR)$(bindir)
 	$(EXE) ../bin/yapps $(DESTDIR)$(bindir)
+	$(EXE) ../bin/comp $(DESTDIR)$(bindir)
 endif
 
 install-kernel-dep: install-dirs
