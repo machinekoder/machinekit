@@ -71,7 +71,7 @@ extern int do_ptype_cmd(char *name);
 extern int do_stype_cmd(char *name);
 extern int do_show_cmd(char *type, char **patterns);
 extern int do_list_cmd(char *type, char **patterns);
-extern int do_source_cmd(char *type);
+extern int do_source_cmd(char* type, char* opt[]);
 extern int do_status_cmd(char *type);
 extern int do_delsig_cmd(char *mod_name);
 extern int do_loadrt_cmd(char *mod_name, char *args[]);

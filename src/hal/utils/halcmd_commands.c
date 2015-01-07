@@ -253,7 +253,7 @@ int do_unlinkp_cmd(char *pin)
     return retval;
 }
 
-int do_source_cmd(char *hal_filename) {
+int do_source_cmd(char *hal_filename, char *opt[]) {
     FILE *f = fopen(hal_filename, "r");
     char buf[MAX_CMD_LEN+1];
     int fd;
@@ -261,11 +261,43 @@ int do_source_cmd(char *hal_filename) {
     int lineno_save = halcmd_get_linenumber();
     int linenumber = 1;
     char *filename_save = strdup(halcmd_get_filename());
+    
+    int optind = 0;
+    char *replace_list[MAX_REPLACEMENTS*2];
+    int replace_num = 0;
+    char replace_buf[MAX_CMD_LEN+1];
+
+    while (opt[optind] && strlen(opt[optind])) {
+        char *current  = opt[optind++];
+        char *saveptr;
+        char *s1 = NULL, *s2 = NULL;
+        s1 = strtok_r(current, "=", &saveptr);
+        if (s1) {
+            s2 = strtok_r(NULL, "=", &saveptr);
+            if (s1 && strlen(s1) && s2 && strlen(s2)) {
+                if (replace_num == MAX_REPLACEMENTS) {
+                   halcmd_error("Too many replacments, maximum %i\n", MAX_REPLACEMENTS);
+                   return -EINVAL;
+                }
+                replace_list[replace_num*2] = s1;
+                replace_list[replace_num*2+1] = s2;
+                replace_num++;
+            }
+            else {
+                halcmd_error("unrecognized parameter '%s'\n", current);
+                return -EINVAL;
+            }
+        }
+        else {
+            halcmd_error("unrecognized parameter '%s'\n", current);
+            return -EINVAL;
+        }
+    }
 
     if(!f) {
         fprintf(stderr, "Could not open hal file '%s': %s\n",
                 hal_filename, strerror(errno));
-	free(filename_save);
+        free(filename_save);
         return -EINVAL;
     }
     fd = fileno(f);
@@ -275,6 +307,7 @@ int do_source_cmd(char *hal_filename) {
 
     while(1) {
         char *readresult = fgets(buf, MAX_CMD_LEN, f);
+        
         halcmd_set_linenumber(linenumber++);
         if(readresult == 0) {
             if(feof(f)) break;
@@ -282,6 +315,69 @@ int do_source_cmd(char *hal_filename) {
             result = -EINVAL;
             break;
         }
+        
+        if (replace_num > 0) {
+            int n;
+            int pos = 0;
+            int buf_len = strlen(buf);
+            
+            result = 0;
+            strcpy(replace_buf, buf);
+            
+            for (n = 0; n < buf_len; ++n) {
+                // look for brace
+                if (replace_buf[n] == '{') {
+                    int word_len = 1;
+                    // search for closing brace
+                    while (((n+word_len) < MAX_CMD_LEN) && (replace_buf[n+word_len] != '}')) {
+                        word_len++;
+                    }
+                    if (replace_buf[n+word_len] == '}') { // found
+                        int i;
+                        int match = 0;
+                        word_len -= 1;
+                        char *word = &replace_buf[n+1];
+                        // do all replacements
+                        for (i = 0; i < replace_num; ++i) {
+                            char *cmp_str = replace_list[i*2];
+                            char *replace_str = replace_list[i*2+1];
+                            
+                            if ((strlen(cmp_str) == word_len) && strncmp(word, cmp_str, word_len) == 0) { // match
+                                int replace_len = strlen(replace_str);
+                                if ((pos + replace_len) < MAX_CMD_LEN) {
+                                    strncpy(&buf[pos], replace_str, replace_len);
+                                    pos += replace_len;
+                                    n += word_len + 1;
+                                    match = 1;
+                                }
+                                else {
+                                    halcmd_error("Replacement too long: %s\n", buf);
+                                    result = -EINVAL;
+                                }
+                                break;  // first match counts
+                            }
+                        }
+                        if(result != 0) break; // propagate error
+                        
+                        if (!match) {
+                            buf[pos] = replace_buf[n];
+                            pos++; // increase pos
+                        }
+                    }
+                    else {
+                        halcmd_error("Closing brace not found: %s\n", buf);
+                        result = -EINVAL;
+                        break;
+                    }
+                }
+                else {
+                    buf[pos] = replace_buf[n];
+                    pos++;
+                }
+            }
+            if(result != 0) break;
+        }
+        
         result = halcmd_parse_line(buf);
         if(result != 0) break;
     }
