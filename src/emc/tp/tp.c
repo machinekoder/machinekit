@@ -1357,7 +1357,6 @@ STATIC int tpSetupSyncedIO(TP_STRUCT * const tp, TC_STRUCT * const tc) {
         tpClearDIOs(tp); // clear out the list, in order to prepare for the next time we need to use it
         return TP_ERR_OK;
     } else {
-        tc->syncdio.anychanged = 0;
         return TP_ERR_NO_ACTION;
     }
 }
