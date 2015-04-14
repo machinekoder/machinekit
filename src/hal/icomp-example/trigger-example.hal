@@ -1,0 +1,39 @@
+loadrt or2
+loadrt and2
+
+setp or2.0.in0  1
+
+setp and2.0.in0  1
+setp and2.0.in1  1
+
+# or2.0.out and and2.0.out still false since thread functions not executed yet
+show pin or2.0.out and2.0.out
+
+# create a trigger funct called 'servo'
+newinst trigger servo
+
+# chain the or2 and and2 thread functions onto servo
+addf or2.0   servo
+addf and2.0  servo
+
+# number of times the servo chain was run, still 0:
+show pin servo.count
+
+# execute the servo chain
+call servo
+
+# or2.0.out now true since thread function executed once
+show pin or2.0.out and2.0.out
+
+# number of times the servo chain was run (1):
+show pin servo.count
+
+# show the chains (for now under 'show thread')
+show thread
+
+# show the functs, 'servo' is listed as type 'trigger'
+show funct
+
+# we can create triggers as needed:
+newinst trigger base
+show funct
