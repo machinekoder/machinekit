@@ -670,11 +670,11 @@ static int comp_id;
         print >>f, "        .owner_id = owner_id"
         print >>f, "        };\n"
 
-        strng =  "    rtapi_snprintf(buf, sizeof(buf),\"%s."
-        if (name == "" or name == "_" or name == " ") :
-            strng += "funct\", name);"
-        else :
-            strng += "%s.funct\", name);" % (to_hal(name))
+        strng =  "    rtapi_snprintf(buf, sizeof(buf),\"%s"
+        if (name == "" or name == "_" or name == " "):
+            strng += "\", name);"
+        else:
+            strng += ".%s\", name);" % (to_hal(name))
         print >>f, strng
 
         print >>f, "    r = hal_export_xfunctf(&%s_xf, buf, name);" % to_c(name)
@@ -759,7 +759,7 @@ static int comp_id;
     print >>f, "        .owner_id = comp_id"
     print >>f, "        };\n"
 
-    print >>f, "    if (hal_export_xfunctf(&xtf,\"%s.funct\", compname))"
+    print >>f, "    if (hal_export_xfunctf(&xtf,\"%s\", compname))"
     print >>f, "        return -1;"
 
     print >>f, "    hal_ready(comp_id);\n"
@@ -993,9 +993,9 @@ def document(filename, outfilename):
         for _, name, fp, doc in finddocs('funct'):
             print >>f, ".TP"
             if name != None and name != "_":
-                print >>f, "\\fB<newinstname>.%s.funct\\fR"  % name ,
+                print >>f, "\\fB<newinstname>.%s\\fR"  % name ,
             else :
-                print >>f, "\\fB<newinstname>.funct\\fR" ,
+                print >>f, "\\fB<newinstname>\\fR" ,
             if fp:
                 print >>f, "(requires a floating-point thread)"
             else:
