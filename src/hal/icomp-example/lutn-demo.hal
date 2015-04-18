@@ -9,8 +9,8 @@ net in0 and2.0.in0 or2.0.in0
 net in1 and2.0.in1 or2.0.in1
 
 newthread servo 1000000 fp
-addf or2.0.funct 	servo
-addf and2.0.funct 	servo
+addf or2.0    servo
+addf and2.0   servo
 start
 
 show sig in0 in1
