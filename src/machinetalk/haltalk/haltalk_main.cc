@@ -353,20 +353,20 @@ read_config(htconf_t *conf)
 	if (inifp && (s = iniFind(inifp, "HALGROUP_STATUS_URI", conf->section)))
 	    conf->halgroup = strdup(s);
 	else {
-	    snprintf(uri, sizeof(uri), conf->halgroup, conf->ipaddr);
+	    snprintf(uri, sizeof(uri), conf->halgroup, "*");
 	    conf->halgroup = strdup(uri);
 	}
 
 	if (inifp && (s = iniFind(inifp, "HALRCOMP_STATUS_URI", conf->section)))
 	    conf->halrcomp = strdup(s);
 	else {
-	    snprintf(uri, sizeof(uri), conf->halrcomp, conf->ipaddr);
+	    snprintf(uri, sizeof(uri), conf->halrcomp, "*");
 	    conf->halrcomp = strdup(uri);
 	}
 	if (inifp && (s = iniFind(inifp, "COMMAND_URI", conf->section)))
 	    conf->command = strdup(s);
 	else {
-	    snprintf(uri, sizeof(uri), conf->command, conf->ipaddr);
+	    snprintf(uri, sizeof(uri), conf->command, "*");
 	    conf->command = strdup(uri);
 	}
     }
