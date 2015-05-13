@@ -25,6 +25,8 @@
 #include "spherical_arc.h"
 #include "blendmath.h"
 
+#include "neon_mathfun.h"
+
 
 //KLUDGE Don't include all of emc.hh here, just hand-copy the TERM COND
 //definitions until we can break the emc constants out into a separate file.
@@ -2040,10 +2042,10 @@ STATIC int tpComputeBlendVelocity(TP_STRUCT const * const tp,
         tcGetEndAccelUnitVector(tc, &v1);
         tcGetStartAccelUnitVector(nexttc, &v2);
         findIntersectionAngle(&v1, &v2, &theta);
-        /* Minimum value of cos(theta) to prevent numerical instability */
-        const double min_cos_theta = cos(PM_PI / 2.0 - TP_MIN_ARC_ANGLE);
-        if (cos(theta) > min_cos_theta) {
-            tblend_vel = 2.0 * pmSqrt(acc_this * tc->tolerance / cos(theta));
+        /* Minimum value of cephes_cosf(theta) to prevent numerical instability */
+        const double min_cos_theta = cephes_cosf(PM_PI / 2.0 - TP_MIN_ARC_ANGLE);
+        if (cephes_cosf(theta) > min_cos_theta) {
+            tblend_vel = 2.0 * pmSqrt(acc_this * tc->tolerance / cephes_cosf(theta));
             v_blend_this = fmin(v_blend_this, tblend_vel);
             v_blend_next = fmin(v_blend_next, tblend_vel);
         }
