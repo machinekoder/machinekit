@@ -17,8 +17,10 @@
 #ifndef _MATH_PRIVATE_H_
 #define _MATH_PRIVATE_H_
 
-#include <linux/types.h>
+#include <sys/types.h>
 #include <asm/byteorder.h>
+
+int libm_errno;
 
 #define __P(args) args
 
@@ -83,7 +85,11 @@ extern double cbrt(double x);
  * big endian.
  */
 
-#if defined( __BIG_ENDIAN) || defined(__arm__)
+#if ( RTAPI_BIG_ENDIAN ) && ( RTAPI_LITTLE_ENDIAN )
+#error "Cannot have both Big and Little Endian"
+#endif
+
+#if RTAPI_BIG_ENDIAN || defined(__arm__)
 
 typedef union 
 {
@@ -97,7 +103,7 @@ typedef union
 
 #endif
 
-#if defined(__LITTLE_ENDIAN) && !defined(__arm__)
+#if RTAPI_LITTLE_ENDIAN && !defined(__arm__)
 
 typedef union 
 {

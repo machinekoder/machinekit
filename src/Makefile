@@ -1099,7 +1099,6 @@ include $(BASEPWD)/rtapi/shmdrv/Submakefile
 include $(BASEPWD)/rtapi/xeno_math/Submakefile
 endif # KERNELRELEASE non-empty
 
-
 # $(BASEPWD) is used here, instead of relative paths, because that's
 # what kbuild seems to require
 
@@ -1520,7 +1519,7 @@ $(RTLIBDIR)/%.so:
 	    `xargs -r0n1 echo -G < $(OBJDIR)/$*.exp | grep -ve '^-G $$' | \
 	        sort -u` $(OBJDIR)/$*.tmp; fi
 	$(Q)$(CC) -shared -Bsymbolic $(LDFLAGS) -o $@ $(OBJDIR)/$*.tmp \
-	    -lm $(EXTRA_LDFLAGS)
+	$(EXTRA_LDFLAGS)
 
 $(sort $(RTDEPS)): $(DEPDIR)/%.d: %.c
 	@mkdir -p $(dir $@)

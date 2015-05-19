@@ -19,7 +19,7 @@
 #include "rtapi.h"  /* Because of all the rtapi refs */
 #include <float.h>  /* DBL_MAX and other FP goodies */
 
-#if defined(RTAPI) && !defined(BUILD_SYS_USER_DSO)
+#if 1 //defined(RTAPI) //&& !defined(BUILD_SYS_USER_DSO)
 extern double sin(double);
 extern double cos(double);
 extern double tan(double);
@@ -67,7 +67,8 @@ extern double floor(double);
 #endif
 
 #else
-#include <math.h>
+#error "Should not come here"
+//#include <math.h>
 #endif
 
 #include "rtapi_byteorder.h"

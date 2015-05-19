@@ -31,8 +31,6 @@ _LIB_VERSION_TYPE _LIB_VERSION = _IEEE_;
 
 MODULE_LICENSE("GPL");
 
-int libm_errno;
-
 int __xeno_math_init(void)
 {
     printk(KERN_INFO "Xenomai math [xeno_math] loaded\n");
