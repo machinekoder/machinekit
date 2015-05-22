@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: w_j1.c,v 1.6 1995/05/10 20:49:15 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double j1(double x)		/* wrapper j1 */
+	double rtapi_j1(double x)		/* wrapper j1 */
 #else
-	double j1(x)			/* wrapper j1 */
+	double rtapi_j1(x)			/* wrapper j1 */
 	double x;
 #endif
 {

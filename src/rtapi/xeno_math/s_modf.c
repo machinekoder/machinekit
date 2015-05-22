@@ -35,9 +35,9 @@ static double one = 1.0;
 #endif
 
 #ifdef __STDC__
-	double modf(double x, double *iptr)
+	double rtapi_modf(double x, double *iptr)
 #else
-	double modf(x, iptr)
+	double rtapi_modf(x, iptr)
 	double x,*iptr;
 #endif
 {

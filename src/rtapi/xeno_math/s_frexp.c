@@ -36,9 +36,9 @@ static double
 two54 =  1.80143985094819840000e+16; /* 0x43500000, 0x00000000 */
 
 #ifdef __STDC__
-	double frexp(double x, int *eptr)
+	double rtapi_frexp(double x, int *eptr)
 #else
-	double frexp(x, eptr)
+	double rtapi_frexp(x, eptr)
 	double x; int *eptr;
 #endif
 {

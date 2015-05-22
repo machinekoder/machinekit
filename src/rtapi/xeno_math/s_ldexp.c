@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: s_ldexp.c,v 1.6 1995/05/10 20:47:40 jtc Exp $";
 extern int libm_errno;
 
 #ifdef __STDC__
-	double ldexp(double value, int exp)
+	double rtapi_ldexp(double value, int exp)
 #else
-	double ldexp(value, exp)
+	double rtapi_ldexp(value, exp)
 	double value; int exp;
 #endif
 {

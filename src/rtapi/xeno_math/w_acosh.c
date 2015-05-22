@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: w_acosh.c,v 1.6 1995/05/10 20:48:31 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double acosh(double x)		/* wrapper acosh */
+	double rtapi_acosh(double x)		/* wrapper acosh */
 #else
-	double acosh(x)			/* wrapper acosh */
+	double rtapi_acosh(x)			/* wrapper acosh */
 	double x;
 #endif
 {

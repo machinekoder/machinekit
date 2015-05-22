@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: w_remainder.c,v 1.6 1995/05/10 20:49:44 jtc Exp 
 #include "mathP.h"
 
 #ifdef __STDC__
-	double remainder(double x, double y)	/* wrapper remainder */
+	double rtapi_remainder(double x, double y)	/* wrapper remainder */
 #else
-	double remainder(x,y)			/* wrapper remainder */
+	double rtapi_remainder(x,y)			/* wrapper remainder */
 	double x,y;
 #endif
 {

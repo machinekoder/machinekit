@@ -21,9 +21,9 @@
 
 
 #ifdef __STDC__
-	double pow(double x, double y)	/* wrapper pow */
+	double rtapi_pow(double x, double y)	/* wrapper pow */
 #else
-	double pow(x,y)			/* wrapper pow */
+	double rtapi_pow(x,y)			/* wrapper pow */
 	double x,y;
 #endif
 {

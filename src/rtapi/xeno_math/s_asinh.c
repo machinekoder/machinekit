@@ -38,9 +38,9 @@ ln2 =  6.93147180559945286227e-01, /* 0x3FE62E42, 0xFEFA39EF */
 huge=  1.00000000000000000000e+300; 
 
 #ifdef __STDC__
-	double asinh(double x)
+	double rtapi_asinh(double x)
 #else
-	double asinh(x)
+	double rtapi_asinh(x)
 	double x;
 #endif
 {	

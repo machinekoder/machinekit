@@ -48,9 +48,9 @@ static char rcsid[] = "$NetBSD: s_tan.c,v 1.7 1995/05/10 20:48:18 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double tan(double x)
+	double rtapi_tan(double x)
 #else
-	double tan(x)
+	double rtapi_tan(x)
 	double x;
 #endif
 {

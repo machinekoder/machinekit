@@ -49,9 +49,9 @@ static char rcsid[] = "$NetBSD: s_cos.c,v 1.7 1995/05/10 20:47:02 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double cos(double x)
+	double rtapi_cos(double x)
 #else
-	double cos(x)
+	double rtapi_cos(x)
 	double x;
 #endif
 {

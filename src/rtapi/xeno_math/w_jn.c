@@ -44,9 +44,9 @@ static char rcsid[] = "$NetBSD: w_jn.c,v 1.6 1995/05/10 20:49:19 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double jn(int n, double x)	/* wrapper jn */
+	double rtapi_jn(int n, double x)	/* wrapper jn */
 #else
-	double jn(n,x)			/* wrapper jn */
+	double rtapi_jn(n,x)			/* wrapper jn */
 	double x; int n;
 #endif
 {
@@ -64,9 +64,9 @@ static char rcsid[] = "$NetBSD: w_jn.c,v 1.6 1995/05/10 20:49:19 jtc Exp $";
 }
 
 #ifdef __STDC__
-	double yn(int n, double x)	/* wrapper yn */
+	double rtapi_yn(int n, double x)	/* wrapper yn */
 #else
-	double yn(n,x)			/* wrapper yn */
+	double rtapi_yn(n,x)			/* wrapper yn */
 	double x; int n;
 #endif
 {

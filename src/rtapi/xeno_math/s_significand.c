@@ -24,9 +24,9 @@ static char rcsid[] = "$NetBSD: s_significand.c,v 1.6 1995/05/10 20:48:11 jtc Ex
 #include "mathP.h"
 
 #ifdef __STDC__
-	double significand(double x)
+	double rtapi_significand(double x)
 #else
-	double significand(x)
+	double rtapi_significand(x)
 	double x;
 #endif
 {

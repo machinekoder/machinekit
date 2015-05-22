@@ -39,9 +39,9 @@ TWO52[2]={
 };
 
 #ifdef __STDC__
-	double rint(double x)
+	double rtapi_rint(double x)
 #else
-	double rint(x)
+	double rtapi_rint(x)
 	double x;
 #endif
 {

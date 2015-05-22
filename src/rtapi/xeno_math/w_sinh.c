@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: w_sinh.c,v 1.6 1995/05/10 20:49:51 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double sinh(double x)		/* wrapper sinh */
+	double rtapi_sinh(double x)		/* wrapper sinh */
 #else
-	double sinh(x)			/* wrapper sinh */
+	double rtapi_sinh(x)			/* wrapper sinh */
 	double x;
 #endif
 {

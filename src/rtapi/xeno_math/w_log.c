@@ -23,9 +23,9 @@ static char rcsid[] = "$NetBSD: w_log.c,v 1.6 1995/05/10 20:49:33 jtc Exp $";
 
 
 #ifdef __STDC__
-	double log(double x)		/* wrapper log */
+	double rtapi_log(double x)		/* wrapper log */
 #else
-	double log(x)			/* wrapper log */
+	double rtapi_log(x)			/* wrapper log */
 	double x;
 #endif
 {

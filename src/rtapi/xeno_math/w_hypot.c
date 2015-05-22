@@ -23,9 +23,9 @@ static char rcsid[] = "$NetBSD: w_hypot.c,v 1.6 1995/05/10 20:49:07 jtc Exp $";
 
 
 #ifdef __STDC__
-	double hypot(double x, double y)/* wrapper hypot */
+	double rtapi_hypot(double x, double y)/* wrapper hypot */
 #else
-	double hypot(x,y)		/* wrapper hypot */
+	double rtapi_hypot(x,y)		/* wrapper hypot */
 	double x,y;
 #endif
 {

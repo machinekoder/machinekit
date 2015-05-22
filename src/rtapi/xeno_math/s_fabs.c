@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: s_fabs.c,v 1.7 1995/05/10 20:47:13 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double fabs(double x)
+	double rtapi_fabs(double x)
 #else
-	double fabs(x)
+	double rtapi_fabs(x)
 	double x;
 #endif
 {

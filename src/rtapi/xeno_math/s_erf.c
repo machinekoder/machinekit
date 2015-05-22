@@ -192,9 +192,9 @@ sb6  =  4.74528541206955367215e+02, /* 0x407DA874, 0xE79FE763 */
 sb7  = -2.24409524465858183362e+01; /* 0xC03670E2, 0x42712D62 */
 
 #ifdef __STDC__
-	double erf(double x) 
+	double rtapi_erf(double x) 
 #else
-	double erf(x) 
+	double rtapi_erf(x) 
 	double x;
 #endif
 {

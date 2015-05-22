@@ -49,9 +49,9 @@ static char rcsid[] = "$NetBSD: s_sin.c,v 1.7 1995/05/10 20:48:15 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double sin(double x)
+	double rtapi_sin(double x)
 #else
-	double sin(x)
+	double rtapi_sin(x)
 	double x;
 #endif
 {

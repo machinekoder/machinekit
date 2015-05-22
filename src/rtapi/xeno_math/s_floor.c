@@ -34,9 +34,9 @@ static double huge = 1.0e300;
 #endif
 
 #ifdef __STDC__
-	double floor(double x)
+	double rtapi_floor(double x)
 #else
-	double floor(x)
+	double rtapi_floor(x)
 	double x;
 #endif
 {

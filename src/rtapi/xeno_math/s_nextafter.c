@@ -25,9 +25,9 @@ static char rcsid[] = "$NetBSD: s_nextafter.c,v 1.8 1995/05/10 20:47:58 jtc Exp 
 #include "mathP.h"
 
 #ifdef __STDC__
-	double nextafter(double x, double y)
+	double rtapi_nextafter(double x, double y)
 #else
-	double nextafter(x,y)
+	double rtapi_nextafter(x,y)
 	double x,y;
 #endif
 {

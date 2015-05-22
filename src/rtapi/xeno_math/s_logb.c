@@ -25,9 +25,9 @@ static char rcsid[] = "$NetBSD: s_logb.c,v 1.8 1995/05/10 20:47:50 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double logb(double x)
+	double rtapi_logb(double x)
 #else
-	double logb(x)
+	double rtapi_logb(x)
 	double x;
 #endif
 {

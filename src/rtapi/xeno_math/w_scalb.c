@@ -30,12 +30,12 @@ extern int libm_errno;
 
 #ifdef __STDC__
 #ifdef _SCALB_INT
-	double scalb(double x, int fn)		/* wrapper scalb */
+	double rtapi_scalb(double x, int fn)		/* wrapper scalb */
 #else
-	double scalb(double x, double fn)	/* wrapper scalb */
+	double rtapi_scalb(double x, double fn)	/* wrapper scalb */
 #endif
 #else
-	double scalb(x,fn)			/* wrapper scalb */
+	double rtapi_scalb(x,fn)			/* wrapper scalb */
 #ifdef _SCALB_INT
 	double x; int fn;
 #else

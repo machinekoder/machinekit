@@ -8,7 +8,7 @@
 #include "rtapi_math.h"
 
 double
-drem(x, y)
+rtapi_drem(x, y)
 	double x, y;
 {
 	return remainder(x, y);

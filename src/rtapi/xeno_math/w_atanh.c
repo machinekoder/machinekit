@@ -23,9 +23,9 @@ static char rcsid[] = "$NetBSD: w_atanh.c,v 1.6 1995/05/10 20:48:43 jtc Exp $";
 
 
 #ifdef __STDC__
-	double atanh(double x)		/* wrapper atanh */
+	double rtapi_atanh(double x)		/* wrapper atanh */
 #else
-	double atanh(x)			/* wrapper atanh */
+	double rtapi_atanh(x)			/* wrapper atanh */
 	double x;
 #endif
 {

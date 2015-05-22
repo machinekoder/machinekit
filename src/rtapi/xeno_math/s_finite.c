@@ -23,9 +23,9 @@ static char rcsid[] = "$NetBSD: s_finite.c,v 1.8 1995/05/10 20:47:17 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	int finite(double x)
+	int rtapi_finite(double x)
 #else
-	int finite(x)
+	int rtapi_finite(x)
 	double x;
 #endif
 {

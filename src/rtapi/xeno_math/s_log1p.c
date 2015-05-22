@@ -105,9 +105,9 @@ static double zero = 0.0;
 #endif
 
 #ifdef __STDC__
-	double log1p(double x)
+	double rtapi_log1p(double x)
 #else
-	double log1p(x)
+	double rtapi_log1p(x)
 	double x;
 #endif
 {

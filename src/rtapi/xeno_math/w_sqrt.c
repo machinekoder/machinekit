@@ -22,9 +22,9 @@ static char rcsid[] = "$NetBSD: w_sqrt.c,v 1.6 1995/05/10 20:49:55 jtc Exp $";
 #include "mathP.h"
 
 #ifdef __STDC__
-	double sqrt(double x)		/* wrapper sqrt */
+	double rtapi_sqrt(double x)		/* wrapper sqrt */
 #else
-	double sqrt(x)			/* wrapper sqrt */
+	double rtapi_sqrt(x)			/* wrapper sqrt */
 	double x;
 #endif
 {

@@ -30,7 +30,6 @@ xeno_math-objs += rtapi/xeno_math/s_rint.o
 xeno_math-objs += rtapi/xeno_math/powidf.o
 
 ifeq ($(BUILD_SYS),kbuild)
-#ifneq ($(KERNELRELEASE),)
 
 obj-m += xeno_math.o
 

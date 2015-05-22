@@ -26,9 +26,9 @@ static char rcsid[] = "$NetBSD: w_gamma.c,v 1.7 1995/11/20 22:06:43 jtc Exp $";
 extern int signgam;
 
 #ifdef __STDC__
-	double gamma(double x)
+	double rtapi_gamma(double x)
 #else
-	double gamma(x)
+	double rtapi_gamma(x)
 	double x;
 #endif
 {

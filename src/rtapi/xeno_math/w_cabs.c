@@ -13,7 +13,7 @@ struct complex {
 };
 
 double
-cabs(struct complex z)
+rtapi_cabs(struct complex z)
 {
 	return hypot(z.x, z.y);
 }

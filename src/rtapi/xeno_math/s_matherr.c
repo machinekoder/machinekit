@@ -18,9 +18,9 @@ static char rcsid[] = "$NetBSD: s_matherr.c,v 1.6 1995/05/10 20:47:53 jtc Exp $"
 #include "mathP.h"
 
 #ifdef __STDC__
-	int matherr(struct exception *x)
+	int rtapi_matherr(struct exception *x)
 #else
-	int matherr(x)
+	int rtapi_matherr(x)
 	struct exception *x;
 #endif
 {
