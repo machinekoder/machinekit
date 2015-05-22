@@ -188,6 +188,8 @@ SUBDIRS := \
 	machinetalk/mklauncher \
 	machinetalk/videoserver \
 	\
+	rtapi/rtapi_math \
+	\
 	libnml/linklist \
 	libnml/cms \
 	libnml/rcs \
