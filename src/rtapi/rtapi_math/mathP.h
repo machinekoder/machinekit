@@ -18,7 +18,7 @@
 #define _MATH_PRIVATE_H_
 
 #include <sys/types.h>
-#include <asm/byteorder.h>
+#include "rtapi_byteorder.h"
 
 int libm_errno;
 
@@ -89,7 +89,7 @@ extern double rtapi_cbrt(double x);
 #error "Cannot have both Big and Little Endian"
 #endif
 
-#if RTAPI_BIG_ENDIAN || defined(__arm__)
+#if RTAPI_BIG_ENDIAN
 
 typedef union 
 {
@@ -103,7 +103,7 @@ typedef union
 
 #endif
 
-#if RTAPI_LITTLE_ENDIAN && !defined(__arm__)
+#if RTAPI_LITTLE_ENDIAN
 
 typedef union 
 {
