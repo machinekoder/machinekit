@@ -15,7 +15,7 @@ $(call TOOBJSDEPS, hal/utils/halsh.c) : EXTRAFLAGS += $(TCL_CFLAGS)
 	../lib/liblinuxcnc-pb2++.so.0 \
 	../lib/libmtalk.so.0
 	$(ECHO) Linking $(notdir $@)
-	$(Q)$(CC) $(LDFLAGS) -shared $^  $(TCL_LIBS) -lm -o $@
+	$(Q)$(CC) $(LDFLAGS) -shared $^  $(TCL_LIBS) -lrtapi_math -o $@
 TARGETS += ../tcl/hal.so
 
 $(call TOOBJSDEPS, $(HALCMDCCSRCS)) : EXTRAFLAGS =  \
@@ -25,10 +25,11 @@ $(call TOOBJSDEPS, $(HALCMDCCSRCS)) : EXTRAFLAGS =  \
 	../lib/liblinuxcncini.so.0 \
 	../lib/liblinuxcnchal.so.0 \
 	../lib/liblinuxcnc-pb2++.so.0 \
-	../lib/libmtalk.so.0
+	../lib/libmtalk.so.0 \
+	../lib/librtapi_math.so
 	$(ECHO) Linking $(notdir $@)
 	$(Q)$(CC) $(LDFLAGS) -o $@ $^ $(READLINE_LIBS) \
-	$(PROTOBUF_LIBS) $(CZMQ_LIBS) $(AVAHI_LIBS) -lm -lstdc++
+	$(PROTOBUF_LIBS) $(CZMQ_LIBS) $(AVAHI_LIBS) -lrtapi_math -lm -lstdc++
 TARGETS += ../bin/halcmd
 
 HALRMTSRCS := hal/utils/halrmt.c
@@ -64,7 +65,7 @@ USERSRCS += $(HALSCOPESRCS)
 
 ../bin/halscope: $(call TOOBJS, $(HALSCOPESRCS)) ../lib/liblinuxcnchal.so.0
 	$(ECHO) Linking $(notdir $@)
-	$(Q)$(CC) $(LDFLAGS) -o $@ $^ $(GTK_LIBS) -lm
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^ $(GTK_LIBS) -lrtapi_math
 TARGETS += ../bin/halscope
 
 HALGTKSRCS := \

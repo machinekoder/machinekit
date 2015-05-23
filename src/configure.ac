@@ -2615,7 +2615,7 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_FUNCS(semtimedop)
 LIBS_hold=$LIBS
-LIBS="$LIBS -lrt"
+LIBS="$LIBS -lrt -lrtapi_math"
 
 AC_CHECK_FUNCS(clock_getres)
 

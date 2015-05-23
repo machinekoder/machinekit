@@ -2516,7 +2516,7 @@ AC_DEFUN([SC_TCL_LINK_LIBS], [
     # right (and it must appear before "-lm").
     #--------------------------------------------------------------------
 
-    AC_CHECK_FUNC(sin, MATH_LIBS="", MATH_LIBS="-lm")
+    AC_CHECK_FUNC(sin, MATH_LIBS="", MATH_LIBS="-lrtapi_math")
     AC_CHECK_LIB(ieee, main, [MATH_LIBS="-lieee $MATH_LIBS"])
 
     #--------------------------------------------------------------------

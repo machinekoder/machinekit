@@ -1,7 +1,6 @@
 ccflags-extra := -D_IEEE_LIBM \
 	-D_ISOC99_SOURCE \
 	-D_DEFAULT_SOURCE \
-	-fno-builtin \
 	-O3 \
 	-Werror
 
@@ -38,18 +37,27 @@ LIBRMSRCS += rtapi/rtapi_math/s_copysign.c
 LIBRMSRCS += rtapi/rtapi_math/s_finite.c
 LIBRMSRCS += rtapi/rtapi_math/s_rint.c
 LIBRMSRCS += rtapi/rtapi_math/powidf.c
+LIBRMSRCS += rtapi/rtapi_math/e_hypot.c
+LIBRMSRCS += rtapi/rtapi_math/w_hypot.c
+LIBRMSRCS += rtapi/rtapi_math/e_fmod.c
+LIBRMSRCS += rtapi/rtapi_math/w_fmod.c
+LIBRMSRCS += rtapi/rtapi_math/s_fabs.c
+LIBRMSRCS += rtapi/rtapi_math/s_rint.c
+LIBRMSRCS += rtapi/rtapi_math/s_fminmax.c
+
 USERSRCS += $(LIBRMSRCS)
 
-$(call TOOBJSDEPS, $(LIBRMSRCS)) : EXTRAFLAGS=-fPIC $(ccflags-extra)
+$(call TOOBJSDEPS, $(LIBRMSRCS)) : EXTRAFLAGS=-fPIC $(ccflags-extra) -shared
 #$(call TOOBJSDEPS, $(LIBRMSRCS)) : CFLAGS = $(ccflags-y)
 
-TARGETS += ../lib/librtapi_math.a
+TARGETS += ../lib/librtapi_math.so
 
-../lib/librtapi_math.a: $(call TOOBJS,$(LIBRMSRCS))
-	$(ECHO) Linking $(notdir $@)
+../lib/librtapi_math.so: $(call TOOBJS,$(LIBRMSRCS))
+	$(ECHO) Creating shared library $(notdir $@)
 	@mkdir -p ../lib
 	@rm -f $@
-	@$(AR) $(ARFLAGS) $@ $^
+	$(Q)$(CXX) $(LDFLAGS) -Wl,-soname,$(notdir $@) -shared -o $@ $^
+
 
 ../include/%.h: ./rtapi/%.h
 	cp  $^ $@
