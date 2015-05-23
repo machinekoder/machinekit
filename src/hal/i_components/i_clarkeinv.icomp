@@ -31,8 +31,8 @@ FUNCTION(_)
 
     // rotate it
     rads = theta * rev2rad;
-    costheta = cos(rads);
-    sintheta = sin(rads);
+    costheta = rtapi_cos(rads);
+    sintheta = rtapi_sin(rads);
     xr = x * costheta - y * sintheta;
     yr = x * sintheta + y * costheta;
 

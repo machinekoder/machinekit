@@ -10,7 +10,7 @@ license "GPL";
 FUNCTION(_) 
 {
     double a = in0, b = in1, c = in2;
-    out = sqrt(a*a + b*b + c*c);
+    out = rtapi_sqrt(a*a + b*b + c*c);
     	
 	return 0;
 }

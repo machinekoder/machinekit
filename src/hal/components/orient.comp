@@ -61,7 +61,7 @@ net orient-command orient.command orient-pid.command
 
 license "GPL";
 ;;
-#include <rtapi_math.h>
+#include "rtapi_math.h"
 
 FUNCTION(_) {
 
@@ -74,13 +74,13 @@ FUNCTION(_) {
             target_angle =  angle/360.0;
             switch (mode) {
             case 0: // shortest move
-                command = floor(latched_position+0.5-target_angle) + target_angle;
+                command = rtapi_floor(latched_position+0.5-target_angle) + target_angle;
                 break;
             case 1: // always cw
-                command = ceil(latched_position-target_angle)  + target_angle;
+                command = rtapi_ceil(latched_position-target_angle)  + target_angle;
                 break;
             case 2: // always ccw
-                command = floor(latched_position-target_angle) + target_angle ;
+                command = rtapi_floor(latched_position-target_angle) + target_angle ;
                 break;
 	    }
 	}
