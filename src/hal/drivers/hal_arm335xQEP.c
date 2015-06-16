@@ -1,46 +1,46 @@
 /*--------------------------------------------------------------------------
 // Description: hal_arm335xQEP.c
-// HAL module to implement quadrature decoding using the ARM335x eQEP 
-// Module 
-// 
+// HAL module to implement quadrature decoding using the ARM335x eQEP
+// Module
+//
 // Author(s): Russell Gower
 // License: GNU GPL Version 2.0 or (at your option) any later version.
 //
 // Major Changes:
 // 2014-Nov    Russell Gower
-//             Initial implementation, based on encoderc.c by John Kasunich      
+//             Initial implementation, based on encoderc.c by John Kasunich
 //--------------------------------------------------------------------------
 // This file is part of LinuxCNC HAL
 //
-// Copyright (C) 2014  Russell Gower 
-//                     <russell AT thegowers DOT me DOT uk> 
-// 
+// Copyright (C) 2014  Russell Gower
+//                     <russell AT thegowers DOT me DOT uk>
+//
 // This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License 
+// modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.       
-//                                                             
+// of the License, or (at your option) any later version.
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.                
-//                                                                 
-// You should have received a copy of the GNU General Public License 
-// along with this program; if not, write to the Free Software      
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA   
-// 02110-1301, USA.                                               
-//                                                               
-// THE AUTHORS OF THIS PROGRAM ACCEPT ABSOLUTELY NO LIABILITY FOR     
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+// 02110-1301, USA.
+//
+// THE AUTHORS OF THIS PROGRAM ACCEPT ABSOLUTELY NO LIABILITY FOR
 // ANY HARM OR LOSS RESULTING FROM ITS USE.  IT IS _EXTREMELY_ UNWISE
-// TO RELY ON SOFTWARE ALONE FOR SAFETY.  Any machinery capable of  
-// harming persons must have provisions for completely removing power 
-// from all motors, etc, before persons enter any danger area.  All  
-// machinery must be designed to comply with local and national safety 
-// codes, and the authors of this software can not, and do not, take  
-// any responsibility for such compliance.                           
-//                                                                  
-// This code was written as part of the LinuxCNC project.  For more 
-// information, go to www.linuxcnc.org.                            
+// TO RELY ON SOFTWARE ALONE FOR SAFETY.  Any machinery capable of
+// harming persons must have provisions for completely removing power
+// from all motors, etc, before persons enter any danger area.  All
+// machinery must be designed to comply with local and national safety
+// codes, and the authors of this software can not, and do not, take
+// any responsibility for such compliance.
+//
+// This code was written as part of the LinuxCNC project.  For more
+// information, go to www.linuxcnc.org.
 //------------------------------------------------------------------------*/
 
 /* Use config_module.h instead of config.h so we can use RTAPI_INC_LIST_H */
@@ -88,7 +88,7 @@ const devices_t devices[] = {
 static const char *modname = MODNAME;
 static int comp_id;
 
-static eqep_t *eqep_array; /* pointer to array of eqep_t structs in 
+static eqep_t *eqep_array; /* pointer to array of eqep_t structs in
                                     shmem, 1 per encoder */
 static int howmany;
 static __u32 timebase;
@@ -143,7 +143,7 @@ int rtapi_app_main(void)
             if (retval == 0 ) {
                 eqep->name = devices[i].name;
                 int fd = open("/dev/mem", O_RDWR);
-    
+
                 eqep->pwm_reg = mmap(0, IOMEMLEN, PROT_READ | PROT_WRITE, MAP_SHARED,
                     fd, devices[i].addr);
 
@@ -152,7 +152,7 @@ int rtapi_app_main(void)
                 close(fd);
 
                 if(eqep->pwm_reg == MAP_FAILED) {
-                    rtapi_print_msg(RTAPI_MSG_ERR, 
+                    rtapi_print_msg(RTAPI_MSG_ERR,
                         "%s: ERROR: mmap failed %s\n", modname, eqep->name);
                     return -1;
                 }
@@ -160,8 +160,8 @@ int rtapi_app_main(void)
                 setup_eQEP(eqep);
                 break;
             }
-        } 
-        
+        }
+
         if(retval != 0) {
             rtapi_print_msg(RTAPI_MSG_ERR, "%s: ERROR: unknown device %s\n",
                 modname, encoders[n]);
@@ -170,7 +170,7 @@ int rtapi_app_main(void)
     }
 
     /* export functions */
-    retval = hal_export_funct("eqep.update", update, 
+    retval = hal_export_funct("eqep.update", update,
         eqep_array, 0, 0, comp_id);
     if (retval != 0) {
         rtapi_print_msg(RTAPI_MSG_ERR,
@@ -268,7 +268,7 @@ static void update(void *arg, long period)
         /* check for valid min_speed */
         if ( *(eqep->min_speed) == 0 ) {
             *(eqep->min_speed) = 1;
-        } 
+        }
 
         /* check reset input */
         if (*(eqep->reset)) {
@@ -317,15 +317,30 @@ static void update(void *arg, long period)
             } else {
                 /* we already stopped estimating */
                 *(eqep->vel) = 0;
-            }    
+            }
         }
-        
+
+        if (eqep->eqep_reg->QEPSTS & UPEVNT) { // we had a up event
+            eqep->eqep_reg->QEPSTS |= UPEVNT;
+            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
+        }
+        else {
+            *(eqep->counter_period) = 0;
+        }
+        if (eqep->eqep_reg->QEPSTS & COEF) { // overflow event
+            eqep->eqep_reg->QEPSTS |= COEF;
+            *(eqep->counter_overflow_count) += 1;
+        }
+        if (eqep->eqep_reg->QEPSTS & CDEF) {  // dir change event
+            eqep->eqep_reg->QEPSTS |= CDEF;
+            *(eqep->counter_dir_change_count) += 1;
+        }
 
         /* compute net counts */
         *(eqep->count) = eqep->raw_count - eqep->index_count;
 
         *(eqep->pos) = *(eqep->count) * eqep->scale;
-        
+
         /* add interpolation value */
         delta_time = timebase - eqep->timestamp;
         interp = *(eqep->vel) * (delta_time * 1e-9);
@@ -333,7 +348,7 @@ static void update(void *arg, long period)
 
 
         /* move on to the next channel */
-        eqep++;  
+        eqep++;
     }
     timebase += period;
 }
@@ -358,11 +373,14 @@ static int setup_eQEP(eqep_t *eqep)
     *(eqep->invertA) = 0;
     *(eqep->invertB) = 0;
     *(eqep->invertZ) = 0;
+    *(eqep->counter_period) = 0;
+    *(eqep->counter_overflow_count) = 0;
+    *(eqep->counter_dir_change_count) = 0;
     eqep->old_raw_count=0;
     eqep->old_scale = 1.0;
-    eqep->raw_count=0;
-    eqep->timestamp=0;
-    eqep->index_count=0;
+    eqep->raw_count = 0;
+    eqep->timestamp = 0;
+    eqep->index_count = 0;
     eqep->counts_since_timeout = 0;
     eqep->scale = 1.0 / *(eqep->pos_scale);
     eqep->old_counter_mode = 0;
@@ -377,8 +395,12 @@ static int setup_eQEP(eqep_t *eqep)
     eqep->eqep_reg->QEINT |= (IEL | PHE);
     eqep->eqep_reg->QEPCTL = PHEN | IEL0 | IEL1 | SWI |PCRM0;
 
+    eqep->eqep_reg->QCAPCTL |= CEN; // enable eQEP capture
+    // eqep->eqep_reg->QCAPCTL |= CCPS set capture prescaler
+    // eqep->eqep_reg->QCAPCTL |= UPPS unit position event prescaler
+
     rtapi_print("%s: REVID = %#x\n",modname, eqep->eqep_reg->QREVID);
-    return 0; 
+    return 0;
 }
 
 static int export_encoder(eqep_t *eqep)
@@ -443,7 +465,23 @@ static int export_encoder(eqep_t *eqep)
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting invert_Z mode\n");
         return -1;
     }
-    
+    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_period), comp_id, "%s.counter-period", eqep->name)) {
+        rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
+        return -1;
+    }
+    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_period), comp_id, "%s.counter-period", eqep->name)) {
+        rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
+        return -1;
+    }
+    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_overflow_count), comp_id, "%s.counter-overflow-count", eqep->name)) {
+        rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-overflow-count\n");
+        return -1;
+    }
+    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_dir_change_count), comp_id, "%s.counter-dir-change-count", eqep->name)) {
+        rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-dir-change-count\n");
+        return -1;
+    }
+
     return 0;
 }
 

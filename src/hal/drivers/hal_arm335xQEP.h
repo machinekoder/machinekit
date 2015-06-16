@@ -130,6 +130,10 @@ typedef struct {
     double          scale;          /* reciprocal value used for scaling */
     hal_float_t     *vel;
 
+    hal_s32_t       *counter_period;
+    hal_s32_t       *counter_overflow_count;
+    hal_s32_t       *counter_dir_change_count;
+
 } eqep_t;
 
 
