@@ -323,9 +323,11 @@ static void update(void *arg, long period)
         if (eqep->eqep_reg->QEPSTS & UPEVNT) { // we had a up event
             eqep->eqep_reg->QEPSTS |= UPEVNT;
             *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
+	    *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT ) * 1.0e-8);
         }
         else {
             *(eqep->counter_period) = 0;
+	    *(eqep->counter_vel) = 0.0;
         }
         if (eqep->eqep_reg->QEPSTS & COEF) { // overflow event
             eqep->eqep_reg->QEPSTS |= COEF;
@@ -374,6 +376,7 @@ static int setup_eQEP(eqep_t *eqep)
     *(eqep->invertB) = 0;
     *(eqep->invertZ) = 0;
     *(eqep->counter_period) = 0;
+    *(eqep->counter_vel) = 0; 
     *(eqep->counter_overflow_count) = 0;
     *(eqep->counter_dir_change_count) = 0;
     eqep->old_raw_count=0;
@@ -469,7 +472,7 @@ static int export_encoder(eqep_t *eqep)
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
         return -1;
     }
-    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_period), comp_id, "%s.counter-period", eqep->name)) {
+    if (hal_pin_float_newf(HAL_OUT, &(eqep->counter_vel), comp_id, "%s.counter-vel", eqep->name)) {
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
         return -1;
     }

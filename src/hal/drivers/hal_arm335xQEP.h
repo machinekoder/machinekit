@@ -133,6 +133,7 @@ typedef struct {
     hal_s32_t       *counter_period;
     hal_s32_t       *counter_overflow_count;
     hal_s32_t       *counter_dir_change_count;
+    hal_float_t     *counter_vel;
 
 } eqep_t;
 
