@@ -265,6 +265,26 @@ static void update(void *arg, long period)
             eqep->old_invertZ = *(eqep->invertZ);
         }
 
+        /* has the capture prescaler been changed? */
+        if ( *(eqep->capture_pre) != eqep->old_capture_pre ) {
+            hal_u32_t active_pre;
+
+            eqep->eqep_reg->QCAPCTL &= ~(CEN); // disable to prevent prescaler problems
+            eqep->eqep_reg->QCAPCTL &= ~(CCPS0 | CCPS1 | CCPS2); // clear prescaler
+            if (*(eqep->capture_pre) < 8u) {
+                active_pre = *(eqep->capture_pre);
+            }
+            else {
+                active_pre = 7u;  // clamp prescaler
+            }
+            eqep->eqep_reg->QCAPCTL |= active_pre << CCPS;
+            eqep->eqep_reg->QCAPCTL |= CEN; // enable eQEP capture timer
+
+            eqep->old_capture_pre = *(eqep->capture_pre);
+            // prescale the capture tick, bit shift = division with base 2
+            eqep->capture_tick = SYSCLKOUT_INV / (hal_float_t)(1 << active_pre);
+        }
+
         /* check for valid min_speed */
         if ( *(eqep->min_speed) == 0 ) {
             *(eqep->min_speed) = 1;
@@ -320,23 +340,25 @@ static void update(void *arg, long period)
             }
         }
 
-        if (eqep->eqep_reg->QEPSTS & UPEVNT) { // we had a up event
-            eqep->eqep_reg->QEPSTS |= UPEVNT;
-            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
-	    *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT ) * 1.0e-8);
-        }
-        else {
-            *(eqep->counter_period) = 0;
-	    *(eqep->counter_vel) = 0.0;
-        }
         if (eqep->eqep_reg->QEPSTS & COEF) { // overflow event
             eqep->eqep_reg->QEPSTS |= COEF;
             *(eqep->counter_overflow_count) += 1;
+            *(eqep->counter_period) = 0;
+            *(eqep->counter_vel) = 0.0;
         }
         if (eqep->eqep_reg->QEPSTS & CDEF) {  // dir change event
             eqep->eqep_reg->QEPSTS |= CDEF;
             *(eqep->counter_dir_change_count) += 1;
+            *(eqep->counter_period) = 0;
+            *(eqep->counter_vel) = 0.0;
         }
+        if (eqep->eqep_reg->QEPSTS & UPEVNT) { // we had a up event
+            eqep->eqep_reg->QEPSTS |= UPEVNT;
+            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
+            *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT) * eqep->capture_tick);
+        }
+
+        // TODO need to decide which velocity to use
 
         /* compute net counts */
         *(eqep->count) = eqep->raw_count - eqep->index_count;
@@ -376,9 +398,10 @@ static int setup_eQEP(eqep_t *eqep)
     *(eqep->invertB) = 0;
     *(eqep->invertZ) = 0;
     *(eqep->counter_period) = 0;
-    *(eqep->counter_vel) = 0; 
+    *(eqep->counter_vel) = 0.0;
     *(eqep->counter_overflow_count) = 0;
     *(eqep->counter_dir_change_count) = 0;
+    *(eqep->capture_period) = 0;
     eqep->old_raw_count=0;
     eqep->old_scale = 1.0;
     eqep->raw_count = 0;
@@ -391,6 +414,8 @@ static int setup_eQEP(eqep_t *eqep)
     eqep->old_invertA = 0;
     eqep->old_invertB = 0;
     eqep->old_invertZ = 0;
+    eqep->old_capture_pre = 0u;
+    eqep->capture_tick = 0.0;
 
     eqep->eqep_reg->QDECCTL = XCR; /* start in x1 resolution */
     eqep->eqep_reg->QPOSINIT = 0;
@@ -398,7 +423,8 @@ static int setup_eQEP(eqep_t *eqep)
     eqep->eqep_reg->QEINT |= (IEL | PHE);
     eqep->eqep_reg->QEPCTL = PHEN | IEL0 | IEL1 | SWI |PCRM0;
 
-    eqep->eqep_reg->QCAPCTL |= CEN; // enable eQEP capture
+    eqep->eqep_reg->QCAPCTL = 0u; // disable to prevent prescaler problems
+    eqep->eqep_reg->QCAPCTL = CEN; // enable eQEP capture
     // eqep->eqep_reg->QCAPCTL |= CCPS set capture prescaler
     // eqep->eqep_reg->QCAPCTL |= UPPS unit position event prescaler
 
@@ -468,7 +494,7 @@ static int export_encoder(eqep_t *eqep)
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting invert_Z mode\n");
         return -1;
     }
-    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_period), comp_id, "%s.counter-period", eqep->name)) {
+    if (hal_pin_u32_newf(HAL_OUT, &(eqep->counter_period), comp_id, "%s.counter-period", eqep->name)) {
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
         return -1;
     }
@@ -476,12 +502,16 @@ static int export_encoder(eqep_t *eqep)
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-period\n");
         return -1;
     }
-    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_overflow_count), comp_id, "%s.counter-overflow-count", eqep->name)) {
+    if (hal_pin_u32_newf(HAL_OUT, &(eqep->counter_overflow_count), comp_id, "%s.counter-overflow-count", eqep->name)) {
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-overflow-count\n");
         return -1;
     }
-    if (hal_pin_s32_newf(HAL_OUT, &(eqep->counter_dir_change_count), comp_id, "%s.counter-dir-change-count", eqep->name)) {
+    if (hal_pin_u32_newf(HAL_OUT, &(eqep->counter_dir_change_count), comp_id, "%s.counter-dir-change-count", eqep->name)) {
         rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting counter-dir-change-count\n");
+        return -1;
+    }
+    if (hal_pin_u32_newf(HAL_IN, &(eqep->capture_pre), comp_id, "%s.capture-prescaler", eqep->name)) {
+        rtapi_print_msg(RTAPI_MSG_ERR,"Error exporting capture-prescaler\n");
         return -1;
     }
 
