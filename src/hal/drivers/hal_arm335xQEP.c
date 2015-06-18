@@ -300,6 +300,24 @@ static void update(void *arg, long period)
             eqep->index_count = eqep->raw_count;
         }
 
+        /* use capture timer for velocity */
+        if (eqep->eqep_reg->QEPSTS & COEF) { /* overflow event */
+            eqep->eqep_reg->QEPSTS |= COEF;
+            *(eqep->counter_overflow_count) += 1;
+            *(eqep->counter_period) = 0;
+            *(eqep->counter_vel) = 0.0;
+        }
+        if (eqep->eqep_reg->QEPSTS & CDEF) {  /* dir change event */
+            eqep->eqep_reg->QEPSTS |= CDEF;
+            *(eqep->counter_dir_change_count) += 1;
+            *(eqep->counter_period) = 0;
+            *(eqep->counter_vel) = 0.0;
+        }
+        if (eqep->eqep_reg->QEPSTS & UPEVNT) { /* we had an up event */
+            eqep->eqep_reg->QEPSTS |= UPEVNT;
+            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
+            *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT) * eqep->capture_tick);
+        }
 
         /* check for movement */
 
@@ -339,26 +357,6 @@ static void update(void *arg, long period)
                 *(eqep->vel) = 0;
             }
         }
-
-        if (eqep->eqep_reg->QEPSTS & COEF) { // overflow event
-            eqep->eqep_reg->QEPSTS |= COEF;
-            *(eqep->counter_overflow_count) += 1;
-            *(eqep->counter_period) = 0;
-            *(eqep->counter_vel) = 0.0;
-        }
-        if (eqep->eqep_reg->QEPSTS & CDEF) {  // dir change event
-            eqep->eqep_reg->QEPSTS |= CDEF;
-            *(eqep->counter_dir_change_count) += 1;
-            *(eqep->counter_period) = 0;
-            *(eqep->counter_vel) = 0.0;
-        }
-        if (eqep->eqep_reg->QEPSTS & UPEVNT) { // we had a up event
-            eqep->eqep_reg->QEPSTS |= UPEVNT;
-            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
-            *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT) * eqep->capture_tick);
-        }
-
-        // TODO need to decide which velocity to use
 
         /* compute net counts */
         *(eqep->count) = eqep->raw_count - eqep->index_count;
@@ -423,10 +421,8 @@ static int setup_eQEP(eqep_t *eqep)
     eqep->eqep_reg->QEINT |= (IEL | PHE);
     eqep->eqep_reg->QEPCTL = PHEN | IEL0 | IEL1 | SWI |PCRM0;
 
-    eqep->eqep_reg->QCAPCTL = 0u; // disable to prevent prescaler problems
-    eqep->eqep_reg->QCAPCTL = CEN; // enable eQEP capture
-    // eqep->eqep_reg->QCAPCTL |= CCPS set capture prescaler
-    // eqep->eqep_reg->QCAPCTL |= UPPS unit position event prescaler
+    eqep->eqep_reg->QCAPCTL = 0u; // reset to prevent prescaler problems
+    eqep->eqep_reg->QCAPCTL |= CEN; // enable eQEP capture
 
     rtapi_print("%s: REVID = %#x\n",modname, eqep->eqep_reg->QREVID);
     return 0;
