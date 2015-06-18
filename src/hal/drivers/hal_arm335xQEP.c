@@ -282,7 +282,7 @@ static void update(void *arg, long period)
 
             eqep->old_capture_pre = *(eqep->capture_pre);
             // prescale the capture tick, bit shift = division with base 2
-            eqep->capture_tick = SYSCLKOUT_INV / (hal_float_t)(1 << active_pre);
+            eqep->capture_tick = SYSCLKOUT_INV * (hal_float_t)(1 << active_pre);
         }
 
         /* check for valid min_speed */
@@ -399,7 +399,6 @@ static int setup_eQEP(eqep_t *eqep)
     *(eqep->counter_vel) = 0.0;
     *(eqep->counter_overflow_count) = 0;
     *(eqep->counter_dir_change_count) = 0;
-    *(eqep->capture_period) = 0;
     eqep->old_raw_count=0;
     eqep->old_scale = 1.0;
     eqep->raw_count = 0;
@@ -412,7 +411,7 @@ static int setup_eQEP(eqep_t *eqep)
     eqep->old_invertA = 0;
     eqep->old_invertB = 0;
     eqep->old_invertZ = 0;
-    eqep->old_capture_pre = 0u;
+    eqep->old_capture_pre = 1u;
     eqep->capture_tick = 0.0;
 
     eqep->eqep_reg->QDECCTL = XCR; /* start in x1 resolution */
