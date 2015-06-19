@@ -315,8 +315,8 @@ static void update(void *arg, long period)
         }
         if (eqep->eqep_reg->QEPSTS & UPEVNT) { /* we had an up event */
             eqep->eqep_reg->QEPSTS |= UPEVNT;
-            *(eqep->counter_period) = eqep->eqep_reg->QCPRDLAT;
-            *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRDLAT) * eqep->capture_tick);
+            *(eqep->counter_period) = eqep->eqep_reg->QCPRD;
+            *(eqep->counter_vel) = eqep->scale / ((hal_float_t)(eqep->eqep_reg->QCPRD) * eqep->capture_tick);
         }
 
         /* check for movement */
