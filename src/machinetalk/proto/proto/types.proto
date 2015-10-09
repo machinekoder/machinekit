@@ -627,6 +627,10 @@ enum ContainerType {
     MT_EMC_STAT		= 11999;
     // --- snip ---
 
+    // EMC command
+    MT_EMCCMD_EXECUTED = 12520;
+    MT_EMCCMD_COMPLETED = 12521;
+
     // EMC status
     MT_EMCSTAT_FULL_UPDATE = 12500;
     MT_EMCSTAT_INCREMENTAL_UPDATE = 12501;
