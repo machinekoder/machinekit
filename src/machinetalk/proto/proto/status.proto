@@ -183,6 +183,14 @@ message EmcStatusLimit {
     optional int32          value = 2;
 }
 
+message EmcStatusHomed {
+
+    option (nanopb_msgopt).msgid = 1117;
+
+    required int32          index = 1;
+    optional bool          value = 2;
+}
+
 message EmcStatusGCode {
 
     option (nanopb_msgopt).msgid = 1107;
@@ -303,6 +311,7 @@ message EmcStatusMotion {
     optional RCS_STATUS             state                   = 47;
     optional double                 max_velocity            = 48;
     optional double                 max_acceleration        = 49;
+    repeated EmcStatusHomed         homed                   = 50;
 }
 
 message EmcStatusIo {
