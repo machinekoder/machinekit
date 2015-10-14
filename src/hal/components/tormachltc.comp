@@ -1,0 +1,144 @@
+
+component tormachltc "Tormach Lathe Tool Changer HAL Component";
+
+license "GPL";
+author "";
+
+// Catch-all tool change component supports manual, gang, and 8-position ATC
+//
+// Type changed via 'tool_changer_type' HAL pin
+//
+// Types:   0, 1, 2
+//          manual  - waits for the GUI to tell it operator tool change complete before asserting iocontrol.0.tool-changed
+//          gang    - does nothing, loops iocontrol.0.tool-change <=> iocontrol.0.tool-changed HAL pins
+//          8 position ATC - asserts PWM duty cycle for tool #, requests ATC tool change, asserts iocontrol.0.tool-changed
+//
+// HAL mappings:
+//
+//    Inputs:
+//          tool_changer_type   <= postgui HAL connection from GUI
+//          manual_tool_changed <= postgui HAL connection from GUI
+//          tool_change_in      <= iocontrol.0.tool-change written by LCNC iocontrol
+//          atc_tool_changed    <= hm2_5i25.0.gpio.010.in_not LCB/ATC has completed tool change
+//          tool_prep_number    <= iocontrol.0.tool-prep-number tool number to change to
+//
+//    Outputs:
+//          tool_change_out     => hm2_5i25.0.gpio.011.out tells LCB/ATC to begins ATC tool change
+//          tool_changed_out    => iocontrol.0.tool-changed tells LCNC iocontrol tool change complete
+//          pwm_duty_cycle      => hm2_5i25.0.pwmgen.00.value tells LCB/ATC tool number
+
+// written by GUI, connected to in postgui HAL file
+pin in s32 tool_changer_type;
+
+// set by GUI, connected to in postgui HAL file
+// cleared here in comp after being asserted by GUI
+pin io bit manual_tool_changed;
+
+// connect this to iocontrol.0.tool-change
+pin in bit tool_change_in;
+
+// connect this to a HAL input pin, e.g. hm2_5i25.0.gpio.010.in_not
+pin in bit atc_tool_changed;
+
+// connect this to iocontrol.0.tool-prep-number
+pin in s32 tool_prep_number;
+
+// connect this to a HAL output pin, e.g. hm2_5i25.0.gpio.011.out
+pin out bit tool_change_out;
+
+// connect this to iocontrol.0.tool-changed
+pin out bit tool_changed_out;
+
+// connect this to a HAL pwmgen value, e.g. hm2_5i25.0.pwmgen.00.value
+pin out float pwm_duty_cycle;
+
+function _ "Tormach Lathe Tool Changer HAL Component";
+
+;;
+
+
+#define NON_ATC_TOOL_PWM 90.0
+#define MIN_ATC_TOOL_NUM 1
+#define MAX_ATC_TOOL_NUM 8
+
+// these must match in the GUI
+#define TOOL_CHANGER_TYPE_MANUAL          0
+#define TOOL_CHANGER_TYPE_GANG            1
+#define TOOL_CHANGER_TYPE_ATC_8POSITION   2
+
+
+FUNCTION(_) {
+
+    if (tool_changer_type == TOOL_CHANGER_TYPE_MANUAL) {
+
+        // set PWM duty cycle to indicate non-ATC tool to lathe control board
+        pwm_duty_cycle = NON_ATC_TOOL_PWM;
+
+		  // if tool change in progress
+        if (tool_change_in) {
+	         // look for indication from GUI that operator has completed tool change
+			 	if (manual_tool_changed) {
+                // copy tool-change-in to tool-changed-out
+                tool_changed_out = tool_change_in;
+            }
+        }
+        else {
+            // no tool change in progress
+            tool_changed_out = 0;
+
+            // clear UI indication for next tool change
+            manual_tool_changed = 0;
+        }
+    }
+    else if (tool_changer_type == TOOL_CHANGER_TYPE_GANG) {
+
+        // set PWM duty cycle to indicate non-ATC tool to lathe control board
+        pwm_duty_cycle = NON_ATC_TOOL_PWM;
+
+        // no action required but to copy tool-change to tool-changed-out
+        tool_changed_out = tool_change_in;
+    }
+    else if (tool_changer_type == TOOL_CHANGER_TYPE_ATC_8POSITION) {
+
+        // compute PWM duty cycle from tool number 1 - 8
+        // 10% => tool #1
+        // 20% => tool #2
+        // 30% => tool #3
+        // 40% => tool #4
+        // 50% => tool #5
+        // 60% => tool #6
+        // 70% => tool #7
+        // 80% => tool #8
+        // 90% => "no tool"
+
+        double duty = (tool_prep_number * 10.0);
+        if (tool_prep_number < MIN_ATC_TOOL_NUM) {
+            // tool # < 1 => non-ATC tool
+            duty = NON_ATC_TOOL_PWM ;
+        }
+        if (tool_prep_number > MAX_ATC_TOOL_NUM) {
+            duty = NON_ATC_TOOL_PWM;
+        }
+        // set PWM duty cycle sent to LCB/ATC
+        pwm_duty_cycle = duty;
+
+        // convey the tool change complete pin from LCB/ATC to iocontrol
+        if (tool_prep_number >= MIN_ATC_TOOL_NUM && tool_prep_number <= MAX_ATC_TOOL_NUM) {
+            // convey the tool change request pin from the LCNC to ATC
+            tool_change_out = tool_change_in;
+            // convey the tool changED acknowledge pin from ATC to LCNC
+            tool_changed_out = atc_tool_changed;
+        }
+        else {
+            // outside range of changer always copy iocontrol "change" to "changed"
+            // assume a ganged tool
+            // do NOT tell the ATC to change the tool - not an ATC tool # here!
+            tool_change_out = 0;
+            // loopback iocontrol "tool-change" to "tool-changed"
+            tool_changed_out = tool_change_in;
+        }
+    } // ATC_8POSITION
+
+    // don't do anything if the tool changer type isn't recognized
+}
+
