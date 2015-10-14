@@ -1154,6 +1154,13 @@ class LinuxCNCWrapper():
                                            'value', stat.limit, False)
         del txObjItem
 
+        txObjItem = EmcStatusHomed()
+        obj = self.status.motion.homed
+        txObj = self.statusTx.motion.homed
+        modified |= self.update_proto_list(obj, txObj, txObjItem,
+                                           'value', stat.homed, False)
+        del txObjItem
+
         txAxis = EmcStatusMotionAxis()
         for index, statAxis in enumerate(stat.axis):
             txAxis.Clear()
