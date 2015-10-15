@@ -1,0 +1,397 @@
+
+component tormachspindle "Tormach Spindle HAL Component";
+
+license "GPL";
+author "";
+
+// Purpose:
+//
+// Replaces use of gearchange.comp and supports standard, speeder, and high speed spindles each
+// with a high and low RPM range. Direction is controlled by a discrete electrical signal outside this comp.
+//
+// Alarm checking and MCB frequency drive
+//
+// Inputs:
+//
+//          disable                 0 = normal operation, 1 = no spindle rotation
+//
+//          spindle-type            0 = standard, 1 = speeder, high speed = 2
+//                                  standard honors belt position and low/high min/max
+//                                  speeder multiplies the values in min/max by speeder-factor
+//                                  high speed ignores belt position and uses hispeed-min and hispeed-max always
+//
+//          lowbelt-min-rpm         minumum RPM in low belt
+//          lowbelt-max-rpm         maximum RPM in low belt
+//          lowbelt-min-mcb-freq    frequency sent to machine control board to achieve lowbelt min speed, default STEPGEN_MIN_FREQ
+//          lowbelt-max-mcb-freq    frequency sent to machine control board to achieve lowbelt max speed, default STEPGEN_MAX_FREQ
+//          lowbelt-min-pwm-dc      PWM duty cycle sent to machine control board to achieve lowbelt min speed, default PWMGEN_MIN_DUTY_CYCLE
+//          lowbelt-max-pwm-dc      PWM duty cycle sent to machine control board to achieve lowbelt max speed, default PWMGEN_MAX_DUTY_CYCLE
+//
+//          highbelt-min-rpm        minimum RPM in high belt
+//          highbelt-max-rom        maximum RPM in high belt
+//          highbelt-min-mcb-freq   frequency sent to machine control board to achieve highbelt min speed, default STEPGEN_MIN_FREQ
+//          highbelt-max-mcb-freq   frequency sent to machine control board to achieve highbelt max speed, default STEPGEN_MAX_FREQ
+//          highbelt-min-pwm-dc     PWM duty cycle sent to machine control board to achieve highbelt min speed, default PWMGEN_MIN_DUTY_CYCLE
+//          highbelt-max-pwm-dc     PWM duty cycle sent to machine control board to achieve highbelt max speed, default PWMGEN_MIN_DUTY_CYCLE
+//
+//          hispeed-min             maximum RPM for high speed spindle-type
+//          hispeed-max             minimum RPM for high speed spindle-type
+//
+//          speed-in             <= motion.spindle-speed-out
+//          belt-position           1 -> high belt, 0 -> low belt position
+//          speeder-factor          defaults to 3.0 - applied to min/max if spindle-type == speeder
+//
+//          enc-door-switch-configured  pay attention to the door switch input to limit RPM when open
+//          enc-door-switch-status      limit spindle speed when enclosure door is open (pin is 0)
+//          enc-door-open-max-rpm       speed limit when enclosure door is open
+//
+// Outputs:
+//
+//          speed-alarm             if true then speed-in is out of range for the current belt position - connect to UI
+//          mcb-freq-out            min-mcb-freq-out Hz -> min speed, max-mcb-freq-out Hz -> max speed of VFD/motor combination
+//                                  This is a velocity command to a stepgen comp that drives the machine control board
+//          mcb-pwm-out             PWM duty cycle output for the speed and belt position
+//
+// Spindle-at-speed:
+//
+// Drive motion.spindle-at-speed while compensating for contactor delay and motor accleration.
+// Since the spindle doesn't provide encoder feedback we estimate the speed.
+//
+// If the spindle was off include a delay period for the VFD contactor to close and the VFD to power up.
+// Then calculate the estimated spindle speed based upon elapsed time and acceleration.
+// After "speed-in" is reached assert "at-speed" pin.
+//
+// If the spindle was already on, ignore any time required for acceleratio and keep "at-speed" asserted.
+//
+// HAL mappings:
+//
+//    Inputs:
+//          speed-in             <= motion.spindle-speed-out
+//          spindle-on           <= motion.spindle-on
+//          startup-delay           seconds before starting accelerating speed computation
+//          seconds-to-max-rpm      seconds from 0 to max RPM in any belt position
+//
+//    Outputs:
+//          at-speed             => motion.spindle-at-speed
+//          speed-out               open loop speed-out in RPM
+//          speed-out-rps           connect to UI for display during gcode program execution
+//
+
+// standard, speeder, high speed
+pin in s32 spindle_type;
+
+// connect to motion.spindle-speed-out
+pin in float speed_in;
+
+// connect to motion.spindle-at-speed
+pin out bit at_speed;
+
+// connect to motion.spindle-on
+pin in bit spindle_on;
+
+// this inbits the spindle from turning no matter what is commanded
+pin in bit disable;
+
+// connect to UI
+pin out float speed_out_rps;
+pin out float speed_out;
+
+// startup delay period for contactor/VFD startup
+pin in float startup_delay;
+
+// hi-low belt position
+pin in bit belt_position;
+
+// seconds from stopped to max rpm (any belt position)
+pin in float seconds_to_max_rpm;
+
+pin out float elapsed_delay_time;
+pin out float elapsed_accel_time;
+
+pin in float lowbelt_min_rpm;
+pin in float lowbelt_max_rpm;
+pin in float lowbelt_min_mcb_freq;
+pin in float lowbelt_max_mcb_freq;
+pin in float lowbelt_min_pwm_dc;
+pin in float lowbelt_max_pwm_dc;
+
+pin in float highbelt_min_rpm;
+pin in float highbelt_max_rpm;
+pin in float highbelt_min_mcb_freq;
+pin in float highbelt_max_mcb_freq;
+pin in float highbelt_min_pwm_dc;
+pin in float highbelt_max_pwm_dc;
+
+// current min and max speeds based upon spindle-type and belt-position
+pin out float min_speed;
+pin out float max_speed;
+
+// when true this forces hispeed spindle type no matter the value of spindle-type
+pin in bit is_hispeed;
+
+pin in float hispeed-min;
+pin in float hispeed-max;
+
+pin in float speeder_factor;
+
+pin out bit speed_alarm;
+pin out float mcb_freq_out;
+pin out float mcb_pwm_out;
+
+pin in bit enc_door_switch_configured;
+pin in bit enc_door_switch_status;
+pin in float enc_door_open_max_rpm;
+
+function _ "Tormach Spindle HAL Component";
+
+;;
+
+#include <rtapi_math.h>
+
+#define BIT_FALSE 0
+#define BIT_TRUE  1
+
+#define STANDARD_TYPE 0
+#define SPEEDER_TYPE  1
+#define HISPEED_TYPE  2
+
+#define BELT_POSITION_LOW  0
+#define BELT_POSITION_HIGH 1
+
+#define SPEEDER_FACTOR_DEFAULT 3.0
+
+#define STEPGEN_MIN_FREQ 500.0
+#define STEPGEN_MAX_FREQ 10900.0
+
+#define PWMGEN_MIN_DUTY_CYCLE 0.0
+#define PWMGEN_MAX_DUTY_CYCLE 100.0
+
+#define RPM_CLOSE_TO_ZERO 0.1
+
+FUNCTION(_) {
+    hal_float_t acceleration;
+    hal_float_t speeder_multiplier;
+    hal_float_t actual_min_mcb_freq;
+    hal_float_t actual_max_mcb_freq;
+    hal_float_t clamped_speed_in;
+    hal_float_t freq_slope;
+    hal_float_t actual_min_pwm_dc;
+    hal_float_t actual_max_pwm_dc;
+    hal_float_t pwm_slope;
+
+    // spindle-type - for high speed use only low belt params
+    //                for speeder compensate for tripled output speed
+    //                for standard pay attention to belt position
+    switch (spindle_type) {
+        default:
+        case STANDARD_TYPE:
+        case HISPEED_TYPE:
+                // standard
+                speeder_multiplier = 1.0;
+                break;
+
+        case SPEEDER_TYPE:
+                // speeder
+                if (speeder_factor != 0.0) {
+                    // use HAL value
+                    speeder_multiplier = rtapi_fabs(speeder_factor);
+                }
+                else {
+                    // use default of SPEEDER_FACTOR_DEFAULT
+                    speeder_multiplier = SPEEDER_FACTOR_DEFAULT;
+                }
+    }
+
+    // set min and max speed from belt position
+    if (belt_position != BELT_POSITION_LOW) {
+        min_speed = highbelt_min_rpm;
+        max_speed = highbelt_max_rpm;
+    }
+    else {
+        min_speed = lowbelt_min_rpm;
+        max_speed = lowbelt_max_rpm;
+    }
+
+    // ignore sign/direction
+    min_speed = rtapi_fabs(min_speed);
+    max_speed = rtapi_fabs(max_speed);
+
+    // test for speeder spindle type
+    if (spindle_type == SPEEDER_TYPE) {
+        min_speed = min_speed * speeder_multiplier;
+        max_speed = max_speed * speeder_multiplier;
+    }
+
+    // test for high speed spindle type
+    if (spindle_type == HISPEED_TYPE || is_hispeed) {
+        // use high speed spindle min and max
+        min_speed = rtapi_fabs(hispeed_min);
+        max_speed = rtapi_fabs(hispeed_max);
+    }
+
+    // if min_speed is greater than max_speed then swap their values to prevent sign inversion
+    if (min_speed > max_speed) {
+        hal_float_t tmp_speed;
+        tmp_speed = min_speed;
+        min_speed = max_speed;
+        max_speed = tmp_speed;
+    }
+
+    // range check and clamp speed-in between min and max (0.0 is OK for stopped)
+    speed_alarm = BIT_FALSE;
+
+    // ignore direction sign from speed-in
+    clamped_speed_in = rtapi_fabs(speed_in);
+
+    if (clamped_speed_in < min_speed) {
+        // under min
+        speed_alarm = BIT_TRUE;
+        clamped_speed_in = min_speed;
+    }
+    else if (clamped_speed_in > max_speed) {
+        // over max
+        speed_alarm = BIT_TRUE;
+        clamped_speed_in = max_speed;
+    }
+
+    // set min and max mcb frequencies base upon belt position
+    if (belt_position != BELT_POSITION_LOW) {
+        // BELT_POSITION_HIGH
+
+        // high belt min freq
+        if (highbelt_min_mcb_freq != 0.0) {
+            actual_min_mcb_freq = rtapi_fabs(highbelt_min_mcb_freq);
+            actual_min_pwm_dc   = rtapi_fabs(highbelt_min_pwm_dc);
+        }
+        else {
+            // use default
+            actual_min_mcb_freq = STEPGEN_MIN_FREQ;
+            actual_min_pwm_dc   = PWMGEN_MIN_DUTY_CYCLE;
+        }
+
+        // high belt max freq
+        if (highbelt_max_mcb_freq != 0.0) {
+            actual_max_mcb_freq = rtapi_fabs(highbelt_max_mcb_freq);
+            actual_max_pwm_dc   = rtapi_fabs(highbelt_max_pwm_dc);
+        }
+        else {
+            // use default
+            actual_max_mcb_freq = STEPGEN_MAX_FREQ;
+            actual_max_pwm_dc   = PWMGEN_MAX_DUTY_CYCLE;
+        }
+    }
+    else {
+        // BELT_POSITION_LOW
+
+        // low belt min freq
+        if (lowbelt_min_mcb_freq != 0.0) {
+            actual_min_mcb_freq = rtapi_fabs(lowbelt_min_mcb_freq);
+            actual_min_pwm_dc   = rtapi_fabs(lowbelt_min_pwm_dc);
+        }
+        else {
+            // use default
+            actual_min_mcb_freq = STEPGEN_MIN_FREQ;
+            actual_min_pwm_dc   = PWMGEN_MIN_DUTY_CYCLE;
+        }
+
+        // low belt max freq
+        if (lowbelt_max_mcb_freq != 0.0) {
+            actual_max_mcb_freq = rtapi_fabs(lowbelt_max_mcb_freq);
+            actual_max_pwm_dc   = rtapi_fabs(lowbelt_max_pwm_dc);
+        }
+        else {
+            // use default
+            actual_max_mcb_freq = STEPGEN_MAX_FREQ;
+            actual_max_pwm_dc   = PWMGEN_MAX_DUTY_CYCLE;
+        }
+    }
+
+    // compute frequency to send to machine control speed input
+    // min_mcb_freq_out Hz -> min speed and min_mcb_freq_out Hz -> max speed
+
+    // slope is rise over run: (max_freq - min_freq) / (max_speed - min_speed)
+    freq_slope = (actual_max_mcb_freq - actual_min_mcb_freq) / (max_speed - min_speed);
+    pwm_slope  = (actual_max_pwm_dc   - actual_min_pwm_dc)   / (max_speed - min_speed);
+
+    // freq is slope * (speed_in - min_speed) + min_mcb_freq
+    mcb_freq_out = (freq_slope * (clamped_speed_in - min_speed)) + actual_min_mcb_freq;
+    mcb_pwm_out  = (pwm_slope  * (clamped_speed_in - min_speed)) + actual_min_pwm_dc;
+
+    // clamp to acceptable range
+    if (mcb_freq_out < actual_min_mcb_freq) {
+        mcb_freq_out = actual_min_mcb_freq;
+    }
+    else if (mcb_freq_out > actual_max_mcb_freq) {
+        mcb_freq_out = actual_max_mcb_freq;
+    }
+    if (mcb_pwm_out < actual_min_pwm_dc) {
+        mcb_pwm_out = actual_min_pwm_dc;
+    }
+    else if (mcb_pwm_out > actual_max_pwm_dc) {
+        mcb_pwm_out = actual_max_pwm_dc;
+    }
+
+    // spindle-at-speed open loop computation
+    //
+    // non-zero spindle speed and spindle not yet at_speed
+    if (spindle_on && (clamped_speed_in > 0.0)) {
+        // spindle is on
+        if (enc_door_switch_configured == 1 && enc_door_switch_status == 1 && clamped_speed_in > enc_door_open_max_rpm) {
+            // enclosure door is open - limit speed
+            speed_out = enc_door_open_max_rpm;
+            if (speed_out < min_speed) {
+                speed_out = min_speed;
+            }
+            else if (speed_out > max_speed) {
+                speed_out = max_speed;
+            }
+            // freq is slope * (speed_in - min_speed) + min_mcb_freq
+            mcb_freq_out = (freq_slope * (speed_out - min_speed)) + actual_min_mcb_freq;
+            mcb_pwm_out  = (pwm_slope  * (speed_out - min_speed)) + actual_min_pwm_dc;
+            at_speed = BIT_TRUE;
+        }
+        else if (at_speed == BIT_FALSE) {
+            // not yet at speed
+            if (elapsed_delay_time >= rtapi_fabs(startup_delay)) {
+                // in accleration state
+                // 'fperiod' is a convenience macro provided by the 'comp' generator
+                elapsed_accel_time += fperiod;
+                // v = a * t + v(0)
+                // compute acceleration from max speed acceleration period
+                acceleration = max_speed / seconds_to_max_rpm;
+                speed_out = rtapi_fabs(acceleration * elapsed_accel_time);
+                if (speed_out >= clamped_speed_in) {
+                    // spindle should now be at speed
+                    at_speed = BIT_TRUE;
+                }
+            }
+            else {
+                // still in delay state
+                // add to elapsed delay before start
+                // 'fperiod' is a convenience macro provided by the 'comp' generator
+                elapsed_delay_time += fperiod;
+                // keep accel time reset
+                elapsed_accel_time = 0.0;
+            }
+        }
+        // in at-speed state - speed-out follows speed-in
+        else {
+            speed_out = clamped_speed_in;
+        }
+    }
+    else {
+        // spindle is off
+        at_speed = BIT_FALSE;
+        elapsed_delay_time = 0.0;
+        elapsed_accel_time = 0.0;
+        speed_out = 0.0;
+        speed_alarm = BIT_FALSE;
+    }
+    if (disable) {
+        // no spindle motion allowed
+        mcb_freq_out = 0.0;
+        mcb_pwm_out  = 0.0;
+    }
+    speed_out_rps = speed_out / 60.0;
+}
+
