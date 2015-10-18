@@ -30,12 +30,24 @@ TARGETS += ../bin/gs2_vfd
 endif # HAVE_LIBMODBUS
 
 ifeq ($(HIDRAW_H_USABLE),yes)
+TORMACHHEIGHTGUAGE_SRC = hal/user_comps/tormachheightgauge.c
+USERSRCS += $(TORMACHHEIGHTGUAGE_SRC)
+../bin/tormachheightgauge: $(call TOOBJS, $(TORMACHHEIGHTGUAGE_SRC)) ../lib/liblinuxcnchal.so.0
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^
+TARGETS += ../bin/tormachheightgauge
 SHUTTLEXPRESS_SRC = hal/user_comps/shuttlexpress.c
 USERSRCS += $(SHUTTLEXPRESS_SRC)
 ../bin/shuttlexpress: $(call TOOBJS, $(SHUTTLEXPRESS_SRC)) ../lib/liblinuxcnchal.so.0
 	$(ECHO) Linking $(notdir $@)
 	$(Q)$(CC) $(LDFLAGS) -o $@ $^
 TARGETS += ../bin/shuttlexpress
+SHUTTLEXPRESS4_SRC = hal/user_comps/shuttlexpress4.c
+USERSRCS += $(SHUTTLEXPRESS4_SRC)
+../bin/shuttlexpress4: $(call TOOBJS, $(SHUTTLEXPRESS4_SRC)) ../lib/liblinuxcnchal.so.0
+	$(ECHO) Linking $(notdir $@)
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^
+TARGETS += ../bin/shuttlexpress4
 endif
 
 ifdef HAVE_LIBUSB10
@@ -47,6 +59,8 @@ $(call TOOBJSDEPS, $(XHC_HB04_SRC)) : EXTRAFLAGS += $(LIBUSB10_CFLAGS)
 	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lstdc++ $(LIBUSB10_LIBS)
 TARGETS += ../bin/xhc-hb04
 endif # HAVE_LIBUSB10
+
+
 
 ../include/%.h: ./hal/user_comps/%.h
 	cp $^ $@
