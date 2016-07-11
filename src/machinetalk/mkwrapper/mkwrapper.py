@@ -858,7 +858,7 @@ class LinuxCNCWrapper():
             if linearUnits in ['mm', 'metric']:
                 linearUnitsConverted = LINEAR_UNITS_MM
             elif linearUnits in ['in', 'inch', 'imperial']:
-                linearUnitsConverted = LINEAR_UNITS_INCH
+                linearUnitsConverted = LINEAR_UNITS_INCHES
             elif linearUnits in ['cm']:
                 linearUnitsConverted = LINEAR_UNITS_CM
             else:
