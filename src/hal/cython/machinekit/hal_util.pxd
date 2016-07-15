@@ -2,6 +2,7 @@
 
 from cpython.int   cimport PyInt_Check
 from cpython.float cimport PyFloat_Check
+from cpython.bool   cimport PyBool_Check
 from cpython.bool  cimport bool
 
 from .hal_priv     cimport hal_shmem_base, hal_data_u, hal_pin_t, hal_sig_t, hal_data
@@ -29,7 +30,7 @@ cdef inline pin_value(hal_pin_t *pin):
 
 
 cdef inline hal2py(int t, hal_data_u *dp):
-    if t == HAL_BIT:  return dp.b
+    if t == HAL_BIT:  return bool(dp.b)
     elif t == HAL_FLOAT: return dp.f
     elif t == HAL_S32:   return dp.s
     elif t == HAL_U32:   return dp.u
@@ -37,22 +38,30 @@ cdef inline hal2py(int t, hal_data_u *dp):
         raise RuntimeError("hal2py: invalid type %d" % t)
 
 cdef inline py2hal(int t, hal_data_u *dp, object v):
-    cdef bint isint,isfloat
+    cdef bint isbool,isint,isfloat
 
+    isbool = PyBool_Check(v)
     isint = PyInt_Check(v)
     isfloat = PyFloat_Check(v)
 
-    if not (isint or isfloat):
-        raise RuntimeError("int or float expected, got %s" % (type(v)))
+    if not (isbool or isint or isfloat):
+        raise RuntimeError("bool, int or float expected, got %s" % (type(v)))
 
     if t == HAL_FLOAT:
         dp.f = v
         return dp.f
 
+    elif isbool:
+        if t == HAL_BIT:
+            dp.b = int(v)
+            return bool(dp.b)
+        else:
+            raise RuntimeError("invalid HAL object type %d" % (t))
+
     elif isint:
         if t == HAL_BIT:
             dp.b = v
-            return dp.b
+            return bool(dp.b)
         elif t ==  HAL_S32:
             dp.s = v
             return dp.s
