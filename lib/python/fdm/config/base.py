@@ -60,6 +60,10 @@ def setup_stepper(stepgenIndex, section, axisIndex=None,
     prufix = bool(c.find(section, 'STEPGEN_MIN_VEL'))
 
     stepgen = '%s.%02i' % (stepgenType, stepgenIndex)
+    if '%s.enable' % stepgen not in hal.pins:
+        stepgen = '%s.%0i' % (stepgenType, stepgenIndex)
+        prufix = False  # this is a software stepgen
+
     if axisIndex is not None:
         axis = 'axis.%i' % axisIndex
     hasMotionAxis = (axisIndex is not None) and (not gantry or gantryJoint == 0)
@@ -108,7 +112,9 @@ def setup_stepper(stepgenIndex, section, axisIndex=None,
         hal.Pin('%s.minvel' % stepgen).link(minVel)
         minVel.set(c.find(section, 'STEPGEN_MIN_VEL'))
 
-    hal.Pin('%s.control-type' % stepgen).link(controlType)
+    control_pin = '%s.control-type' % stepgen
+    if control_pin in hal.pins:
+        hal.Pin(control_pin).link(controlType)
 
     # position command and feedback
     if not velocityControlled:
