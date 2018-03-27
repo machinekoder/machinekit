@@ -1085,12 +1085,9 @@ static int export_stepgen(int num, stepgen_t * addr, int step_type, int pos_mode
     retval = hal_pin_u32_newf(HAL_IO, &(addr->step_len), comp_id,
 	"stepgen.%d.steplen", num);
     if (retval != 0) { return retval; }
-    if (step_type < 2) {
-	/* step/dir and up/down use 'stepspace' */
-	retval = hal_pin_u32_newf(HAL_IO, &(addr->step_space),
+    retval = hal_pin_u32_newf(HAL_IO, &(addr->step_space),
 	    comp_id, "stepgen.%d.stepspace", num);
-	if (retval != 0) { return retval; }
-    }
+    if (retval != 0) { return retval; }
     if ( step_type == 0 ) {
 	/* step/dir is the only one that uses dirsetup and dirhold */
 	retval = hal_pin_u32_newf(HAL_IO, &(addr->dir_setup),
@@ -1100,6 +1097,9 @@ static int export_stepgen(int num, stepgen_t * addr, int step_type, int pos_mode
 	    comp_id, "stepgen.%d.dirhold", num);
 	if (retval != 0) { return retval; }
     } else {
+	retval = hal_pin_u32_newf(HAL_IO, &(addr->dir_setup),
+	    comp_id, "stepgen.%d.dirsetup", num);
+	if (retval != 0) { return retval; }
 	/* the others use dirdelay */
 	retval = hal_pin_u32_newf(HAL_IO, &(addr->dir_hold_dly),
 	    comp_id, "stepgen.%d.dirdelay", num);
@@ -1148,9 +1148,9 @@ static int export_stepgen(int num, stepgen_t * addr, int step_type, int pos_mode
     /* timing parameter defaults depend on step type */
     *(addr->step_len) = 1;
     if ( step_type < 2 ) {
-	addr->step_space = 1;
+	*(addr->step_space) = 1;
     } else {
-	addr->step_space = 0;
+	*(addr->step_space) = 0;
     }
     if ( step_type == 0 ) {
 	*(addr->dir_hold_dly) = 1;
