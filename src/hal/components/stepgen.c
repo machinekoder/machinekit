@@ -1085,7 +1085,9 @@ static int export_stepgen(int num, stepgen_t * addr, int step_type, int pos_mode
     retval = hal_pin_u32_newf(HAL_IO, &(addr->step_len), comp_id,
 	"stepgen.%d.steplen", num);
     if (retval != 0) { return retval; }
-    retval = hal_pin_u32_newf(HAL_IO, &(addr->step_space),
+    if (step_type < 2) {
+      /* step/dir and up/down use 'stepspace' */
+      retval = hal_pin_u32_newf(HAL_IO, &(addr->step_space),
 	    comp_id, "stepgen.%d.stepspace", num);
     if (retval != 0) { return retval; }
     if ( step_type == 0 ) {
