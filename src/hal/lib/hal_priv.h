@@ -513,6 +513,7 @@ typedef enum {
     FS_LEGACY_THREADFUNC,  // legacy API
     FS_XTHREADFUNC,        // extended API
     FS_USERLAND,           // userland-callable, with argc/arv vector
+    FS_TRIGGER,            // userland-callable, may be addf'd to
 } hal_funct_signature_t;
 
 typedef struct hal_thread hal_thread_t;
@@ -579,6 +580,7 @@ typedef struct hal_funct {
     int uses_fp;		/* floating point flag */
     int reentrant;		/* non-zero if function is re-entrant */
     int users;			/* number of threads using function */
+    hal_list_t funct_list;	/* list of functions to run if functs chained */
 } hal_funct_t;
 
 typedef struct hal_funct_entry {
