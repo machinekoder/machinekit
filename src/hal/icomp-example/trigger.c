@@ -56,7 +56,7 @@ static int run_chain(const hal_funct_args_t *trigger)
 
 	fa.funct = SHMPTR(funct_entry->funct_ptr);
 
-	HALDBG("calling '%s'", fa.funct->name);
+	HALDBG("calling '%s'", fa_funct_name(&fa));
 
 	switch (funct_entry->type) {
 
@@ -118,8 +118,10 @@ static int export_halobjs(struct inst_data *ip, int inst_id, const char *name)
     return 0;
 }
 
-static int instantiate(const char *name, const int argc, const char**argv)
+static int instantiate(const int argc, char* const *argv)
 {
+    // argv[0]: component name
+    const char *name = argv[1]; // instance name
     struct inst_data *ip;
     int inst_id, retval;
 

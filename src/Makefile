@@ -1541,6 +1541,9 @@ interpolate-objs := hal/interpolator/interpolate.o machinetalk/build/machinetalk
 obj-m += icomp.o
 icomp-objs := hal/icomp-example/icomp.o
 
+obj-m += trigger.o
+trigger-objs := hal/icomp-example/trigger.o
+
 # clashes with component in i_components
 obj-m += lutn-demo.o
 lutn-demo-objs := hal/icomp-example/lutn-demo.o
@@ -1818,6 +1821,7 @@ $(RTLIBDIR)/ufdemo$(MODULE_EXT):	$(addprefix $(OBJDIR)/,$(ufdemo-objs))
 $(RTLIBDIR)/jplan$(MODULE_EXT):		$(addprefix $(OBJDIR)/,$(jplan-objs))
 $(RTLIBDIR)/interpolate$(MODULE_EXT):	$(addprefix $(OBJDIR)/,$(interpolate-objs))
 $(RTLIBDIR)/icomp$(MODULE_EXT):		$(addprefix $(OBJDIR)/,$(icomp-objs))
+$(RTLIBDIR)/trigger$(MODULE_EXT):		$(addprefix $(OBJDIR)/,$(trigger-objs))
 $(RTLIBDIR)/lutn-demo$(MODULE_EXT):	$(addprefix $(OBJDIR)/,$(lutn-demo-objs))
 
 
