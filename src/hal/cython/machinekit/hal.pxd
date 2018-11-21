@@ -56,5 +56,6 @@ cdef extern from "hal.h":
                                 int position, int rmb, int wmb)
 
     int hal_del_funct_from_thread(const char *funct_name, const char *thread_name)
+    int hal_call_usrfunct(const char *name, const int argc, const char **argv, int *ureturn)
 
     char *hal_lasterror()
