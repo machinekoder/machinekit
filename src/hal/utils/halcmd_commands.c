@@ -2375,6 +2375,7 @@ static const char *ftype(int ft)
     case FS_LEGACY_THREADFUNC: return "thread";
     case FS_XTHREADFUNC: return "xthread";
     case FS_USERLAND: return "user";
+    case FS_TRIGGER: return "trigger";
     default: return "*invalid*";
     }
 }
@@ -4001,11 +4002,14 @@ int do_waitunbound_cmd(char *comp_name, char *tokens[])
 int do_callfunc_cmd(char *func, char *args[])
 {
     int retval = rtapi_callfunc(rtapi_instance, func, (const char **)args);
-    if ( retval < 0 ) {
-	halcmd_error("function call %s returned %d: %s\n", func, retval, rtapi_rpcerror());
-	return retval;
+    switch (retval) {
+    case -EBUSY:
+        halcmd_error("realtime threads_not_started (rc=%d)\n", retval);
+        break;
+    default:
+        halcmd_error("function call %s returned %d: %s\n", func, retval, rtapi_rpcerror());
+        return retval;
     }
-    halcmd_info("function '%s' returned %d\n", func, retval);
     return 0;
 }
 
