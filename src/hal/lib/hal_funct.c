@@ -138,7 +138,9 @@ static int halg_export_xfunctfv(const int use_hal_mutex,
 	// TBD: check success of above
 	break;
     case FS_USERLAND: // no timing pins/params
-	;
+    break;
+    case FS_TRIGGER: // no timing pins/params
+    break;
     }
 
     return 0;
@@ -166,8 +168,13 @@ int hal_call_usrfunct(const char *name, const int argc, char * const *argv,
 	    HALFAIL_RC(ENOENT,"funct '%s' not found", name);
 	}
 
-	if (funct->type != FS_USERLAND) {
+    switch (funct->type) {
+    case FS_USERLAND:
+    case FS_TRIGGER:
+        break;
+    default:
 	    HALFAIL_RC(ENOENT,"funct '%s': invalid type %d", name, funct->type);
+        break;
 	}
 
 	// argv sanity check - we dont want to fail this, esp in kernel land
@@ -189,9 +196,19 @@ int hal_call_usrfunct(const char *name, const int argc, char * const *argv,
 	.argc = argc,
 	.argv = argv,
     };
-    int retval = funct->funct.u(&fa);
-    if (ureturn)
-	*ureturn = retval;
+
+    int retval;
+    switch (funct->type) {
+    case FS_USERLAND:
+    case FS_TRIGGER:
+        retval = funct->funct.u(&fa);
+        if (ureturn) {
+            *ureturn = retval;
+        }
+        return 0;
+    default:
+        return -EINVAL;
+    }
     return 0;
 }
 int hal_add_funct_to_thread(const char *funct_name,
@@ -200,7 +217,7 @@ int hal_add_funct_to_thread(const char *funct_name,
 			    const int read_barrier,
 			    const int write_barrier)
 {
-    hal_funct_t *funct;
+    hal_funct_t *funct, *ufunct;
     hal_list_t *list_root, *list_entry;
     int n;
     hal_funct_entry_t *funct_entry;
@@ -247,20 +264,25 @@ int hal_add_funct_to_thread(const char *funct_name,
 	    HALFAIL_RC(EINVAL, "function '%s' may only be added "
 		       "to one thread", funct_name);
 	}
-	/* search thread list for thread_name */
+	// see if this is chained onto a thread or a userfunct
 	thread = halpr_find_thread_by_name(thread_name);
-	if (thread == 0) {
-	    /* thread not found */
-	    HALFAIL_RC(EINVAL, "thread '%s' not found", thread_name);
+    ufunct = halpr_find_funct_by_name(thread_name);
+    if ((thread == NULL) && (ufunct == NULL)) {
+	    HALFAIL_RC(EINVAL, "no such thread or userfunct: '%s'", thread_name);
 	}
 	/* ok, we have thread and function, are they compatible? */
-	if ((funct->uses_fp) && (!thread->uses_fp)) {
-	    HALFAIL_RC(EINVAL, "function '%s' needs FP", funct_name);
-	}
-	/* find insertion point */
-	list_root = &(thread->funct_list);
-	list_entry = list_root;
-	n = 0;
+    if (thread != NULL) {
+        if ((funct->uses_fp) && (!thread->uses_fp)) {
+            HALFAIL_RC(EINVAL, "function '%s' needs FP", funct_name);
+        }
+        /* find insertion point */
+        list_root = &(thread->funct_list);
+    } else {
+        list_root = &(ufunct->funct_list);
+    }
+    list_entry = list_root;
+
+    n = 0;
 	if (position > 0) {
 	    /* insertion is relative to start of list */
 	    while (++n < position) {
@@ -321,9 +343,10 @@ int hal_del_funct_from_thread(const char *funct_name, const char *thread_name)
 	WITH_HAL_MUTEX();
 
 	hal_thread_t *thread;
+    hal_funct_t *funct, *ufunct;
 
 	/* search function list for the function */
-	hal_funct_t *funct = halpr_find_funct_by_name(funct_name);
+	funct = halpr_find_funct_by_name(funct_name);
 	if (funct == NULL) {
 	    funct = halpr_find_funct_by_name((const char*)buff);
 	    if (funct == NULL) {
@@ -334,20 +357,28 @@ int hal_del_funct_from_thread(const char *funct_name, const char *thread_name)
 	if (funct->users == 0) {
 	    HALFAIL_RC(EINVAL, "function '%s' is not in use", funct_name);
 	}
-	/* search thread list for thread_name */
+	// see if this is chained onto a thread or a userfunct
 	thread = halpr_find_thread_by_name(thread_name);
-	if (thread == 0) {
-	    /* thread not found */
-	    HALFAIL_RC(EINVAL, "thread '%s' not found", thread_name);
-	}
-	/* ok, we have thread and function, does thread use funct? */
-	hal_list_t *list_root = &(thread->funct_list);
-	hal_list_t *list_entry = dlist_next(list_root);
+    ufunct = halpr_find_funct_by_name(thread_name);
+    if ((thread == NULL) && (ufunct == NULL)) {
+        HALFAIL_RC(EINVAL, "no such thread or userfunct: '%s'", thread_name);
+    }
+    /* find insertion point */
+    hal_list_t *list_root;
+    hal_list_t *list_entry;
+    if (thread != NULL) {
+        list_root = &(thread->funct_list);
+    }
+    else {
+        list_root = &(ufunct->funct_list);;
+    }
+    list_entry = dlist_next(list_root);
 	while (1) {
 	    if (list_entry == list_root) {
 		/* reached end of list, funct not found */
-		HALFAIL_RC(EINVAL, "thread '%s' doesn't use %s",
-			   thread_name, funct_name);
+		HALFAIL_RC(EINVAL, "%s '%s' doesn't use %s",
+		       thread ? "thread" : "userfunct",
+		       thread_name, funct_name);
 	    }
 	    hal_funct_entry_t *funct_entry = (hal_funct_entry_t *) list_entry;
 	    if (SHMPTR(funct_entry->funct_ptr) == funct) {
