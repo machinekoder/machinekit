@@ -26,7 +26,6 @@ class TestUserfuncts(TestCase):
         self.rt.unloadrt("ufdemo")
 
         # define a trigger called 'servo'
-        self.rt.loadrt("trigger");
         self.rt.newinst("trigger","servo")
         servo_count = hal.Pin("servo.count")
 
@@ -34,8 +33,8 @@ class TestUserfuncts(TestCase):
         assert servo_count.get() == 0
 
         # load some comps
-        self.rt.loadrt("and2")
-        self.rt.loadrt("or2")
+        self.rt.newinst("and2", "and2.0")
+        self.rt.newinst("or2", "or2.0")
 
         # chain threadfuncts onto trigger
         hal.addf("or2.0",  "servo")
